@@ -1,0 +1,17 @@
+---
+- name: Mount clients
+  hosts: ohpc_compute
+  become: True
+  gather_facts: false
+  tasks:
+    - name: ensure mount dir exists
+      file:
+        path: "/mnt/lustre/{{ fs_name }}"
+        state: directory
+        recurse: yes
+
+    - name: mount lustre fs
+      command: "mount -t lustre {{ mgsnode }}{{ lnet_suffix }}:/{{ fs_name }} /mnt/lustre/{{ fs_name }}"
+      register: command_result
+      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+      changed_when: "command_result.rc == 0"
