@@ -12,6 +12,7 @@
 
     - name: Load lustre
       command: modprobe lustre
+      changed_when: False
 
     - name: mount lustre fs
       command: "mount -t lustre {{ mgsnode }}{{ lnet_suffix }}:/{{ fs_name }} /mnt/lustre/{{ fs_name }}"
