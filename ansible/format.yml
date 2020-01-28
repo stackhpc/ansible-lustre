@@ -1,0 +1,66 @@
+---
+- name: Format disks
+  hosts: ohpc_login[0]
+  become: True
+  gather_facts: false
+  tasks:
+
+    - name: Load lustre
+      command: modprobe lustre
+
+    - name: Ensure MGS has been formatted
+      command: /usr/sbin/mkfs.lustre --mgs /dev/{{ mgs }}
+      register: command_result
+      failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
+      changed_when: "command_result.rc == 0"
+
+    - name: Format MDTs
+      command: "/usr/sbin/mkfs.lustre --mdt --fsname={{ fs_name }} --index={{ item_index }} --mgsnode={{ mgsnode }}{{ lnet_suffix }} /dev/{{ item }}"
+      loop: "{{ mdts }}"
+      loop_control:
+        index_var: item_index
+
+    - name: Format OSTs
+      command: "/usr/sbin/mkfs.lustre --ost --fsname={{ fs_name }} --index={{ item_index }} --mgsnode={{ mgsnode }}{{ lnet_suffix }} /dev/{{ item }}"
+      loop: "{{ osts }}"
+      loop_control:
+        index_var: item_index
+
+    - name: Create MGS mount dir
+      file:
+        path: /lustre/MGS
+        state: directory
+        recurse: yes
+    - name: mount MGSs
+      command: mount -t lustre /dev/{{ mgs }} /lustre/MGS
+      register: command_result
+      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+      changed_when: "command_result.rc == 0"
+
+    - name: Create MDT mount dir
+      file:
+        path: /lustre/{{ fs_name }}/MDT/{{ item }}
+        state: directory
+        recurse: yes
+      loop: "{{ mdts }}"
+
+    - name: mount MDTs
+      command: mount -t lustre /dev/{{ item }} /lustre/{{ fs_name }}/MDT/{{ item }}
+      register: command_result
+      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+      changed_when: "command_result.rc == 0"
+      loop: "{{ mdts }}"
+
+    - name: Create OST mount dir
+      file:
+        path: /lustre/{{ fs_name }}/OST/{{ item }}
+        state: directory
+        recurse: yes
+      loop: "{{ osts }}"
+
+    - name: mount OSTs
+      command: mount -t lustre /dev/{{ item }} /lustre/{{ fs_name }}/OST/{{ item }}
+      register: command_result
+      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+      changed_when: "command_result.rc == 0"
+      loop: "{{ osts }}"

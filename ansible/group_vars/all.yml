@@ -1,2 +1,10 @@
 ---
-lustre_release: "2.12.3"
+lustre_release: "2.12.2"
+
+fs_name: test_fs1
+mgs_node: "{{ hostvars[groups['openhpc_login'][0]]['ansible_host'] }}"
+mgs: "sdb"
+mdt:
+  - "sdc"
+osts:
+  - "sdd"
