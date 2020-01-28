@@ -62,7 +62,15 @@
       package:
         # EPEL needed to install dkms
         name: kernel-devel,epel-release
-    - name: Install Lustre Client
+    - name: Install Lustre Client DKMS
       yum:
         name: "lustre-client-dkms-{{ lustre_release }}"
         state: present
+    - name: Install Lustre Client
+      yum:
+        name: "kmod-lustre-client"
+        state: present
+    - name: Put SELinux in permissive mode, logging actions that would be blocked.
+      selinux:
+        policy: targeted
+        state: permissive
