@@ -1,0 +1,53 @@
+---
+- name: Configure proxy's keys
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Wait for proxy
+      wait_for:
+        host: "{{ ohpc_proxy_address }}"
+        port: 22
+        state: started
+        timeout: 360
+
+    - name: Scan for proxy's SSH keys
+      command: "ssh-keyscan -t rsa {{ ohpc_proxy_address }}"
+      register: keyscan_results
+      changed_when: False
+      delegate_to: "localhost"
+
+    - name: Ensure proxy in SSH known hosts
+      blockinfile:
+        block: |
+          {% for line in keyscan_results.stdout_lines %}
+          {{ line }}
+          {% endfor %}
+        create: true
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC proxy"
+        path: "~/.ssh/known_hosts"
+
+- name: Configure server's keys
+  hosts: localhost
+  vars:
+    all_hosts: "{{ groups['cluster_batch'] + groups['cluster_login'] }}"
+  gather_facts: false
+  tasks:
+    - name: Scan for server's SSH keys
+      command: "ssh {{ ansible_user }}@{{ ohpc_proxy_address }} ssh-keyscan -t rsa {{ hostvars[item]['ansible_host'] }}"
+      register: keyscan_results
+      changed_when: False
+      delegate_to: "localhost"
+      loop: "{{ all_hosts }}"
+
+    - name: Ensure servers are in SSH known hosts
+      blockinfile:
+        block: |
+          {% for key in item.stdout_lines %}
+          {{ key }}
+          {% endfor %}
+        create: true
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.{{ index }}"
+        path: "~/.ssh/known_hosts"
+      loop: "{{ keyscan_results['results'] }}"
+      loop_control:
+        index_var: index

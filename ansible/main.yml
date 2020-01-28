@@ -1,0 +1,3 @@
+---
+- import_playbook: ssh.yml
+- import_playbook: install.yml

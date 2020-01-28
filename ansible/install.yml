@@ -1,0 +1,68 @@
+---
+- name: Configure proxy's keys
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Wait for proxy
+      wait_for:
+        host: "{{ ohpc_proxy_address }}"
+        port: 22
+        state: started
+        timeout: 360
+
+    - name: Scan for proxy's SSH keys
+      command: "ssh-keyscan -t rsa {{ ohpc_proxy_address }}"
+      register: keyscan_results
+      changed_when: False
+      delegate_to: "localhost"
+
+    - name: Ensure proxy in SSH known hosts
+      blockinfile:
+        block: |
+          {% for line in keyscan_results.stdout_lines %}
+          {{ line }}
+          {% endfor %}
+        create: true
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC proxy"
+        path: "~/.ssh/known_hosts"
+
+- hosts: ohpc_login
+  become: True
+  tasks:
+    - name: enable lustre server repo
+      yum_repository:
+        name: lustre-server
+        description: lustre-server
+        file: lustre-repo
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_release }}/el7/patchless-ldiskfs-server
+        gpgcheck: no
+    - name: enable lustre e2fs repo
+      yum_repository:
+        name: e2fsprogs-wc
+        description: e2fsprogs-wc
+        file: lustre-repo
+        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el7
+        gpgcheck: no
+    - name: Install Lustre Server
+      yum:
+        name: "lustre-{{ lustre_release }}"
+        state: present
+
+- hosts: ohpc_compute
+  become: True
+  tasks:
+    - name: enable lustre client repo
+      yum_repository:
+        name: lustre-client
+        description: lustre-client
+        file: lustre-repo
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre_release }}/el7/client
+        gpgcheck: no
+    - name: ensure kernel headers available
+      package:
+        # EPEL needed to install dkms
+        name: kernel-devel,epel-release
+    - name: Install Lustre Client
+      yum:
+        name: "lustre-client-dkms-{{ lustre_release }}"
+        state: present
