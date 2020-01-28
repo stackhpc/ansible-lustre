@@ -66,9 +66,13 @@
       yum:
         name: "lustre-client-dkms-{{ lustre_release }}"
         state: present
+    - name: Install Lustre Client kmods
+      yum:
+        name: "kmod-lustre-client-{{ lustre_release }}"
+        state: present
     - name: Install Lustre Client
       yum:
-        name: "kmod-lustre-client"
+        name: "lustre-client-{{ lustre_release }}"
         state: present
     - name: Put SELinux in permissive mode, logging actions that would be blocked.
       selinux:

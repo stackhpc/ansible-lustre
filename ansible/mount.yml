@@ -10,6 +10,9 @@
         state: directory
         recurse: yes
 
+    - name: Load lustre
+      command: modprobe lustre
+
     - name: mount lustre fs
       command: "mount -t lustre {{ mgsnode }}{{ lnet_suffix }}:/{{ fs_name }} /mnt/lustre/{{ fs_name }}"
       register: command_result
