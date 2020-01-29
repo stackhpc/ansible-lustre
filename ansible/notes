@@ -1,0 +1,25 @@
+Based on:
+http://wiki.lustre.org/LNet_Router_Config_Guide
+
+Servers:
+10.1.0.15 eth0
+
+lnetctl net add --net tcp0 --if eth0
+lnetctl route add --net tcp1 --gateway 10.1.0.9@tcp0
+lnetctl peer add --nid 10.1.0.9@tcp0
+
+Routers:
+10.1.0.9 eth0 / 192.168.42.17 eth1
+
+lnetctl net add --net tcp0 --if eth0
+lnetctl net add --net tcp1 --if eth1
+lnetctl peer add --nid 10.1.0.1@tcp0
+lnetctl peer add --nid 192.168.42.1@tcp1
+lnetctl set routing 1
+
+Clients:
+192.168.42.26 eth0
+
+lnetctl net add --net tcp1 --if eth0
+lnetctl route add --net tcp0 --gateway 192.168.42.17@tcp1
+lnetctl peer add --nid 192.168.42.17@tcp1
