@@ -39,6 +39,8 @@ lnetctl net add --net tcp2 --if eth0
 lnetctl route add --net tcp1 --gateway 192.168.42.17@tcp2
 lnetctl peer add --nid 192.168.42.17@tcp2
 
+lnetctl ping 10.1.0.15@tcp1
+lnetctl ping 192.168.42.26@tcp2
 mount -t lustre 10.1.0.15@tcp1:/test_fs1 /mnt/lustre/test_fs1
 
 
