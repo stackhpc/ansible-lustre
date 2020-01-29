@@ -1,0 +1,21 @@
+---
+- name: Check routes to server
+  hosts: net1,net2,lnet2,ohpc_login
+  become: True
+  gather_facts: false
+  tasks:
+    - name: test server
+      command: "lnetctl ping {{ lustre_server }}"
+      changed_when: False
+
+- name: Check routes to gateway
+  hosts: net2,lnet2,ohpc_login
+  become: True
+  gather_facts: false
+  tasks:
+    - name: test router
+      command: "lnetctl ping {{ lnet2_server_net2 }}"
+      changed_when: False
+    - name: test router
+      command: "lnetctl ping {{ lnet2_server_storage }}"
+      changed_when: False
