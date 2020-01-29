@@ -145,13 +145,17 @@ resource "openstack_compute_volume_attach_v2" "va_ost1" {
 data  "template_file" "ohpc" {
     template = "${file("${path.module}/inventory.tpl")}"
     vars = {
-      login = <<EOT
+      storage = <<EOT
 ${openstack_compute_instance_v2.lustre_server.name} ansible_host=${openstack_compute_instance_v2.lustre_server.network[0].fixed_ip_v4}
 EOT
-      computes = <<EOT
+      net1 = <<EOT
 %{for compute in openstack_compute_instance_v2.compute}
 ${compute.name} ansible_host=${compute.network[0].fixed_ip_v4}%{ endfor }
+EOT
+      lnet2 = <<EOT
 ${openstack_compute_instance_v2.lnet2.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4}
+EOT
+      net2 = <<EOT
 ${openstack_compute_instance_v2.client2.name} ansible_host=${openstack_networking_floatingip_v2.fip_2.address}
 EOT
       fip = "${openstack_networking_floatingip_v2.fip_1.address}"

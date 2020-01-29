@@ -4,8 +4,20 @@ ansible_ssh_common_args='-C -o ControlMaster=auto -o ControlPersist=60s -o Proxy
 ohpc_proxy_address=${fip}
 
 [ohpc_login]
-${login}
-[ohpc_compute]${computes}
+${storage}
+
+[ohpc_compute]${net1}
+${lnet2}
+${net2}
+
+[net1]${net1}
+
+[lnet2]
+${lnet2}
+
+[net2]
+${net2}
+
 [cluster_login:children]
 ohpc_login
 
