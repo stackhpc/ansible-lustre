@@ -10,3 +10,9 @@ mdts:
   - "sdc"
 osts:
   - "sdd"
+
+lustre_server: "{{ mgsnode }}@{{ lnet_suffix }}"
+lnet2: "{{ hostvars[groups['lnet2'][0]]['ansible_host'] }}"
+lnet2_server_storage: "{{ lnet2 }}@{{ lnet_suffix }}"
+# TODO: make this automatic somehow
+lnet2_server_net2: "192.168.42.6@tcp2"
