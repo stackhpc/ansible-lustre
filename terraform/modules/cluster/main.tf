@@ -4,22 +4,22 @@ terraform {
 
 resource "openstack_compute_keypair_v2" "terraform" {
   name       = "terraform_${var.instance_prefix}"
-  public_key = "${file("${var.ssh_key_file}.pub")}"
+  public_key = file("${var.ssh_key_file}.pub")
 }
 
 resource "openstack_compute_instance_v2" "login" {
   name = "${var.instance_prefix}-login"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    name = "${var.network_name}"
+    name = var.network_name
   }
 }
 
 resource "openstack_networking_floatingip_v2" "fip_1" {
-  pool = "${var.floatingip_pool}"
+  pool = var.floatingip_pool
 }
 
 resource "openstack_compute_floatingip_associate_v2" "fip_1" {
@@ -126,7 +126,7 @@ resource "openstack_blockstorage_volume_v3" "mdt1" {
 resource "openstack_compute_volume_attach_v2" "va_mdt1" {
   instance_id = openstack_compute_instance_v2.lustre_server.id
   volume_id   = openstack_blockstorage_volume_v3.mdt1.id
-  depends_on  = ["openstack_compute_volume_attach_v2.va_mgs"]
+  depends_on  = [openstack_compute_volume_attach_v2.va_mgs]
 }
 
 resource "openstack_blockstorage_volume_v3" "ost1" {
@@ -137,7 +137,7 @@ resource "openstack_blockstorage_volume_v3" "ost1" {
 resource "openstack_compute_volume_attach_v2" "va_ost1" {
   instance_id = openstack_compute_instance_v2.lustre_server.id
   volume_id   = openstack_blockstorage_volume_v3.ost1.id
-  depends_on  = ["openstack_compute_volume_attach_v2.va_mdt1"]
+  depends_on  = [openstack_compute_volume_attach_v2.va_mdt1]
 }
 
 
