@@ -1,6 +1,6 @@
 ---
-- name: Check routes to server
-  hosts: net1,net2,lnet2,ohpc_login
+- name: Check routes from clent1
+  hosts: net1
   become: True
   gather_facts: false
   tasks:
@@ -8,13 +8,43 @@
       command: "lnetctl ping {{ lustre_server }}"
       changed_when: False
 
-- name: Check routes to gateway
-  hosts: net2,lnet2,ohpc_login
+- name: Check routes from gateway
+  hosts: lnet2
+  become: True
+  gather_facts: false
+  tasks:
+    - name: test client2
+      command: "lnetctl ping {{ client_net2 }}"
+      changed_when: False
+    - name: test server
+      command: "lnetctl ping {{ lustre_server }}"
+      changed_when: False
+
+- name: Check routes from clent2
+  hosts: net2
   become: True
   gather_facts: false
   tasks:
     - name: test router
       command: "lnetctl ping {{ lnet2_server_net2 }}"
+      changed_when: False
+    - name: test server
+      command: "lnetctl ping {{ lustre_server }}"
+      changed_when: False
+
+- name: Check routes from storage servers
+  hosts: ohpc_login
+  become: True
+  gather_facts: false
+  tasks:
+    - name: test server
+      command: "lnetctl ping {{ lustre_server }}"
+      changed_when: False
+    - name: test client1
+      command: "lnetctl ping {{ client_net1 }}"
+      changed_when: False
+    - name: test client2
+      command: "lnetctl ping {{ client_net2 }}"
       changed_when: False
     - name: test router
       command: "lnetctl ping {{ lnet2_server_storage }}"

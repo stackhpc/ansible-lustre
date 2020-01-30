@@ -17,7 +17,7 @@
   gather_facts: false
   tasks:
     - name: Add tcp1
-      command: lnetctl net add --net tcp1 --if eth0 
+      command: echo lnetctl net add --net tcp1 --if eth0 
       changed_when: False
 
 - name: Configure lnet2
@@ -26,19 +26,19 @@
   gather_facts: false
   tasks:
     - name: Add tcp1
-      command: lnetctl net add --net tcp1 --if eth0 
+      command: echo lnetctl net add --net tcp1 --if eth0 
       changed_when: False
     - name: Add tcp2
-      command: lnetctl net add --net tcp2 --if eth1 
+      command: echo lnetctl net add --net tcp2 --if eth1 
       changed_when: False
     - name: Add peer tcp1
-      command: "lnetctl peer add --nid {{ lnet2_server_storage }}"
+      command: "echo lnetctl peer add --nid {{ lnet2_server_storage }}"
       changed_when: False
     - name: Add peer tcp2
-      command: "lnetctl peer add --nid {{ lnet2_server_net2 }}"
+      command: "echo lnetctl peer add --nid {{ lnet2_server_net2 }}"
       changed_when: False
     - name: turn on routing
-      command: lnetctl set routing 1
+      command: echo lnetctl set routing 1
       changed_when: False
 
 - name: Add tcp2 gateway on server
@@ -47,10 +47,10 @@
   gather_facts: false
   tasks:
     - name: Add gateway route to tcp2
-      command: "lnetctl route add --net tcp2 --gateway {{ lnet2_server_storage }}"
+      command: "echo lnetctl route add --net tcp2 --gateway {{ lnet2_server_storage }}"
       changed_when: False
     - name: Add gateway as peer
-      command: "lnetctl peer add --nid {{ lnet2_server_storage }}"
+      command: "echo lnetctl peer add --nid {{ lnet2_server_storage }}"
       changed_when: False
 
 - name: Configure net2 clients
@@ -59,33 +59,12 @@
   gather_facts: false
   tasks:
     - name: Add tcp2
-      command: lnetctl net add --net tcp2 --if eth0 
+      command: echo lnetctl net add --net tcp2 --if eth0 
       changed_when: False
     - name: Add gateway route to tcp1
-      command: "lnetctl route add --net tcp1 --gateway {{ lnet2_server_net2 }}"
+      command: "echo lnetctl route add --net tcp1 --gateway {{ lnet2_server_net2 }}"
       changed_when: False
     - name: Add gateway as peer
-      command: "lnetctl peer add --nid {{ lnet2_server_net2 }}"
-      changed_when: False
-
-- name: Check routes to server
-  hosts: net1,net2,lnet2,ohpc_login
-  become: True
-  gather_facts: false
-  tasks:
-    - name: test server
-      command: "lnetctl ping {{ lustre_server }}"
-      changed_when: False
-
-- name: Check routes to gateway
-  hosts: net2,lnet2,ohpc_login
-  become: True
-  gather_facts: false
-  tasks:
-    - name: test router
-      command: "lnetctl ping {{ lnet2_server_net2 }}"
-      changed_when: False
-    - name: test router
-      command: "lnetctl ping {{ lnet2_server_storage }}"
+      command: "echo lnetctl peer add --nid {{ lnet2_server_net2 }}"
       changed_when: False
 

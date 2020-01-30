@@ -51,3 +51,10 @@ lctl network down
 lustre_rmmod
 modprobe lnet -v
 lctl network up
+
+
+
+/etc/lnet.conf
+
+systemctl lnet
+MGS needs all nids
