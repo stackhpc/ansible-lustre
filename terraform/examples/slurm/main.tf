@@ -14,7 +14,8 @@ provider "template" {
 
 module "cluster" {
   source = "../../modules/cluster"
-
+  image = "CentOS-7-x86_64-GenericCloud-1907"
+  flavor = "C1.vss.small"
   compute_count = 1
   floatingip_pool = "CUDN-Private"
 }
