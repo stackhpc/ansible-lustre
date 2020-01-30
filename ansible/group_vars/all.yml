@@ -2,11 +2,14 @@
 lustre_release: "2.12.2"
 
 fs_name: test_fs1
-lnet_suffix: "@tcp"
+lnet_suffix: "@tcp1"
 
-mgsnode: "{{ hostvars[groups['ohpc_login'][0]]['ansible_host'] }}"
+mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
 mgs: "sdb"
 mdts:
   - "sdc"
 osts:
   - "sdd"
+
+lustre_server: "{{ mgsnode }}{{ lnet_suffix }}"
+client_net2: "{{ hostvars[groups['client_net2'][0]]['ansible_host'] }}@tcp2"

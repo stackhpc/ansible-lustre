@@ -1,0 +1,60 @@
+Based on:
+http://wiki.lustre.org/LNet_Router_Config_Guide
+
+
+Servers:
+10.1.0.15 eth0
+
+lnetctl net add --net tcp1 --if eth0
+lnetctl route add --net tcp2 --gateway 10.1.0.9@tcp1
+lnetctl peer add --nid 10.1.0.9@tcp1
+
+
+Net1 Clients:
+10.1.0.6 eth0
+
+lnetctl net add --net tcp1 --if eth0
+
+
+Routers:
+10.1.0.9 eth0 / 192.168.42.17 eth1
+
+lctl network up
+
+lnetctl net add --net tcp1 --if eth0
+lnetctl net add --net tcp2 --if eth1
+lnetctl peer add --nid 10.1.0.1@tcp1
+lnetctl peer add --nid 192.168.42.1@tcp2
+lnetctl set routing 1
+
+Do we need these?
+lnetctl peer add --nid 10.1.0.15@tcp1
+lnetctl peer add --nid 192.168.42.26@tcp2
+
+
+Net2 Clients:
+192.168.42.26 eth0
+
+lnetctl net add --net tcp2 --if eth0
+lnetctl route add --net tcp1 --gateway 192.168.42.17@tcp2
+lnetctl peer add --nid 192.168.42.17@tcp2
+
+lnetctl ping 10.1.0.15@tcp1
+lnetctl ping 192.168.42.26@tcp2
+mount -t lustre 10.1.0.15@tcp1:/test_fs1 /mnt/lustre/test_fs1
+
+
+Reset lnet:
+
+(umount -t lustre --all)
+lctl network down
+lustre_rmmod
+modprobe lnet -v
+lctl network up
+
+
+
+/etc/lnet.conf
+
+systemctl lnet
+MGS needs all nids

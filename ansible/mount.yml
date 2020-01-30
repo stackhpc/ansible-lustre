@@ -1,6 +1,6 @@
 ---
 - name: Mount clients
-  hosts: ohpc_compute
+  hosts: lustre_client
   become: True
   gather_facts: false
   tasks:
@@ -9,10 +9,6 @@
         path: "/mnt/lustre/{{ fs_name }}"
         state: directory
         recurse: yes
-
-    - name: Load lustre
-      command: modprobe lustre
-      changed_when: False
 
     - name: mount lustre fs
       # TODO: we should use the built in mount system in ansible

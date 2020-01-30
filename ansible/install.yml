@@ -1,32 +1,6 @@
 ---
-- name: Configure proxy's keys
-  hosts: localhost
+- hosts: lustre_server
   gather_facts: false
-  tasks:
-    - name: Wait for proxy
-      wait_for:
-        host: "{{ ohpc_proxy_address }}"
-        port: 22
-        state: started
-        timeout: 360
-
-    - name: Scan for proxy's SSH keys
-      command: "ssh-keyscan -t rsa {{ ohpc_proxy_address }}"
-      register: keyscan_results
-      changed_when: False
-      delegate_to: "localhost"
-
-    - name: Ensure proxy in SSH known hosts
-      blockinfile:
-        block: |
-          {% for line in keyscan_results.stdout_lines %}
-          {{ line }}
-          {% endfor %}
-        create: true
-        marker: "# {mark} MANAGED BLOCK FOR OpenHPC proxy"
-        path: "~/.ssh/known_hosts"
-
-- hosts: ohpc_login
   become: True
   tasks:
     - name: enable lustre server repo
@@ -47,8 +21,13 @@
       yum:
         name: "lustre-{{ lustre_release }}"
         state: present
+    - name: Put SELinux in permissive mode, logging actions that would be blocked.
+      selinux:
+        policy: targeted
+        state: permissive
 
-- hosts: ohpc_compute
+- hosts: lustre_client
+  gather_facts: false
   become: True
   tasks:
     - name: enable lustre client repo
