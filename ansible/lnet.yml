@@ -1,70 +1,21 @@
 ---
-- name: turn on lnet
-  hosts: net1,net2,lnet2,ohpc_login
+- name: configure and enable lnet
+  hosts: lustre_client,lustre_server
   become: True
   gather_facts: false
   tasks:
-    - name: add kmod
-      command: modprobe lnet -v
-      changed_when: False
-    - name: turn on lnet
-      command: lctl network up
-      changed_when: False
-
-- name: Configure all net2 with tcp1 LNET
-  hosts: net1,ohpc_login
-  become: True
-  gather_facts: false
-  tasks:
-    - name: Add tcp1
-      command: echo lnetctl net add --net tcp1 --if eth0 
-      changed_when: False
-
-- name: Configure lnet2
-  hosts: lnet2
-  become: True
-  gather_facts: false
-  tasks:
-    - name: Add tcp1
-      command: echo lnetctl net add --net tcp1 --if eth0 
-      changed_when: False
-    - name: Add tcp2
-      command: echo lnetctl net add --net tcp2 --if eth1 
-      changed_when: False
-    - name: Add peer tcp1
-      command: "echo lnetctl peer add --nid {{ lnet2_server_storage }}"
-      changed_when: False
-    - name: Add peer tcp2
-      command: "echo lnetctl peer add --nid {{ lnet2_server_net2 }}"
-      changed_when: False
-    - name: turn on routing
-      command: echo lnetctl set routing 1
-      changed_when: False
-
-- name: Add tcp2 gateway on server
-  hosts: ohpc_login
-  become: True
-  gather_facts: false
-  tasks:
-    - name: Add gateway route to tcp2
-      command: "echo lnetctl route add --net tcp2 --gateway {{ lnet2_server_storage }}"
-      changed_when: False
-    - name: Add gateway as peer
-      command: "echo lnetctl peer add --nid {{ lnet2_server_storage }}"
-      changed_when: False
-
-- name: Configure net2 clients
-  hosts: net2
-  become: True
-  gather_facts: false
-  tasks:
-    - name: Add tcp2
-      command: echo lnetctl net add --net tcp2 --if eth0 
-      changed_when: False
-    - name: Add gateway route to tcp1
-      command: "echo lnetctl route add --net tcp1 --gateway {{ lnet2_server_net2 }}"
-      changed_when: False
-    - name: Add gateway as peer
-      command: "echo lnetctl peer add --nid {{ lnet2_server_net2 }}"
-      changed_when: False
-
+    - name: Write out lnet config
+      template:
+        src: lnet.conf.j2
+        dest: /etc/lnet.conf
+      register: lnetconf
+    - name: Ensure lnet is started
+      service:
+        name: lnet
+        state: started
+        enabled: true
+    # TODO: need tools to properly apply lnet to running config
+    # Also need tools to assert running config matches the file
+    #- name: Import lnet conf
+    #  command: "lnetctl import < /etc/lnet.conf"
+    #  when: lnetconf.changed

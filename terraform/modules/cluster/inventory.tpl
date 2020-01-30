@@ -1,41 +1,47 @@
 [all:vars]
 ansible_user=${ssh_user_name}
-ansible_ssh_common_args='-C -o ControlMaster=auto -o ControlPersist=60s -o ProxyCommand="ssh ${ssh_user_name}@${fip} -W %h:%p"'
-ohpc_proxy_address=${fip}
+ssh_proxy=${fip_net1}
+ansible_ssh_common_args='-C -o ControlMaster=auto -o ControlPersist=60s -o ProxyCommand="ssh ${ssh_user_name}@${fip_net1} -W %h:%p"'
 
-[ohpc_login]
+[storage_net1]
 ${storage}
 
-[ohpc_compute]${net1}
-${lnet2}
-${net2}
+[client_net1]
+${net1}
 
-[net1]${net1}
-
-[lnet2]
+[router_net1_to_net2]
 ${lnet2}
 
-[net2]
+[client_net2]
 ${net2}
 
-[cluster_login:children]
-ohpc_login
+[client_net2:vars]
+ssh_proxy=${fip_net2}
+ansible_ssh_common_args='-C -o ControlMaster=auto -o ControlPersist=60s -o ProxyCommand="ssh ${ssh_user_name}@${fip_net2} -W %h:%p"'
 
-[cluster_control:children]
-ohpc_login
 
-[cluster_batch:children]
-ohpc_compute
+[lustre_server:children]
+storage_net1
 
-[cluster_beegfs_mgmt:children]
-ohpc_login
+[lustre_client:children]
+client_net1
+client_net2
+router_net1_to_net2
 
-[cluster_beegfs_mds:children]
-ohpc_login
 
-[cluster_beegfs_oss:children]
-ohpc_compute
+[lnet_tcp1:children]
+storage_net1
+client_net1
+router_net1_to_net2
 
-[cluster_beegfs_client:children]
-ohpc_login
-ohpc_compute
+[lnet_tcp2:children]
+client_net2
+
+[lnet_router_tcp1_to_tcp2:children]
+router_net1_to_net2
+
+[lnet_tcp2_from_tcp1:children]
+storage_net1
+
+[lnet_tcp1_from_tcp2:children]
+client_net2

@@ -3,5 +3,5 @@
 - import_playbook: install.yml
 - import_playbook: lnet.yml
 - import_playbook: lnet-test.yml
-#- import_playbook: format.yml
+- import_playbook: format.yml
 #- import_playbook: mount.yml

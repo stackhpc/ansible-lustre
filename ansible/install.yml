@@ -1,5 +1,5 @@
 ---
-- hosts: ohpc_login
+- hosts: lustre_server
   gather_facts: false
   become: True
   tasks:
@@ -26,7 +26,7 @@
         policy: targeted
         state: permissive
 
-- hosts: ohpc_compute
+- hosts: lustre_client
   gather_facts: false
   become: True
   tasks:

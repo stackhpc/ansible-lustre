@@ -1,6 +1,6 @@
 ---
 - name: Format disks
-  hosts: ohpc_login[0]
+  hosts: lustre_server[0]
   become: True
   gather_facts: false
   tasks:

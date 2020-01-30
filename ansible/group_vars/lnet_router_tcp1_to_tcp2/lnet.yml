@@ -1,0 +1,4 @@
+---
+lnet_eth0_net_type: tcp1
+lnet_eth1_net_type: tcp2
+lnet_routing_enabled: true

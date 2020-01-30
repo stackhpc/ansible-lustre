@@ -153,13 +153,14 @@ EOT
 ${compute.name} ansible_host=${compute.network[0].fixed_ip_v4}%{ endfor }
 EOT
       lnet2 = <<EOT
-${openstack_compute_instance_v2.lnet2.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4}
+${openstack_compute_instance_v2.lnet2.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4} eth1_address=${openstack_compute_instance_v2.lnet2.network[1].fixed_ip_v4}
 EOT
       net2 = <<EOT
-${openstack_compute_instance_v2.client2.name} ansible_host=${openstack_networking_floatingip_v2.fip_2.address}
+${openstack_compute_instance_v2.client2.name} ansible_host=${openstack_compute_instance_v2.client2.network[0].fixed_ip_v4}
 EOT
-      fip = "${openstack_networking_floatingip_v2.fip_1.address}"
-	  ssh_user_name = "${var.ssh_user_name}"
+      fip_net1 = "${openstack_networking_floatingip_v2.fip_1.address}"
+      fip_net2 = "${openstack_networking_floatingip_v2.fip_2.address}"
+      ssh_user_name = "${var.ssh_user_name}"
     }
     depends_on = [openstack_compute_instance_v2.compute]
 }
