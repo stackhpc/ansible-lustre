@@ -18,20 +18,19 @@ resource "openstack_networking_subnet_v2" "net1" {
   cidr            = "192.168.41.0/24"
   ip_version      = 4
 }
-resource "openstack_networking_router_v2" "net1" {
-  name                = "net1"
+resource "openstack_networking_router_v2" "external" {
+  name                = "external"
   admin_state_up      = "true"
   external_network_id = "${data.openstack_networking_network_v2.internet.id}"
 }
 resource "openstack_networking_router_interface_v2" "net1" {
-  router_id = "${openstack_networking_router_v2.net1.id}"
+  router_id = "${openstack_networking_router_v2.external.id}"
   subnet_id = "${openstack_networking_subnet_v2.net1.id}"
 }
 
 
-resource "openstack_compute_instance_v2" "compute" {
-  count = "${var.compute_count}"
-  name = "${format("${var.instance_prefix}-comp%02d", count.index+1)}"
+resource "openstack_compute_instance_v2" "client1" {
+  name = "${var.instance_prefix}-client1"
   image_name = "${var.image}"
   flavor_name = "${var.flavor}"
   key_pair = "${openstack_compute_keypair_v2.terraform.name}"
@@ -53,7 +52,7 @@ resource "openstack_networking_subnet_v2" "net2" {
   ip_version      = 4
 }
 resource "openstack_networking_router_interface_v2" "net2" {
-  router_id = "${openstack_networking_router_v2.net1.id}"
+  router_id = "${openstack_networking_router_v2.external.id}"
   subnet_id = "${openstack_networking_subnet_v2.net2.id}"
 }
 
@@ -153,8 +152,7 @@ data  "template_file" "ohpc" {
 ${openstack_compute_instance_v2.lustre_server.name} ansible_host=${openstack_compute_instance_v2.lustre_server.network[0].fixed_ip_v4}
 EOT
       net1 = <<EOT
-%{for compute in openstack_compute_instance_v2.compute}
-${compute.name} ansible_host=${compute.network[0].fixed_ip_v4}%{ endfor }
+${openstack_compute_instance_v2.client1.name} ansible_host=${openstack_compute_instance_v2.client1.network[0].fixed_ip_v4}
 EOT
       lnet2 = <<EOT
 ${openstack_compute_instance_v2.lnet2.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4} eth1_address=${openstack_compute_instance_v2.lnet2.network[1].fixed_ip_v4}
@@ -166,7 +164,7 @@ EOT
       fip_net2 = "${openstack_networking_floatingip_v2.fip_2.address}"
       ssh_user_name = "${var.ssh_user_name}"
     }
-    depends_on = [openstack_compute_instance_v2.compute]
+    depends_on = [openstack_compute_instance_v2.client1]
 }
 
 resource "local_file" "hosts" {

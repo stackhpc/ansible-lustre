@@ -18,10 +18,6 @@ variable "floatingip_pool" {
   default = "internet"
 }
 
-variable "compute_count" {
-  default = 2
-}
-
 variable "instance_prefix" {
   default = "ohpc"
 }
