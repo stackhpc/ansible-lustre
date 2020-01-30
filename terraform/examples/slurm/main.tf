@@ -3,8 +3,6 @@ terraform {
 }
 
 provider "openstack" {
-  cloud = "openstack"
-
   version = "~> 1.25"
 }
 provider "local" {
@@ -18,4 +16,5 @@ module "cluster" {
   source = "../../modules/cluster"
 
   compute_count = 1
+  floatingip_pool = "CUDN-Private"
 }
