@@ -24,7 +24,7 @@
           {{ line }}
           {% endfor %}
         create: true
-        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.proxy.{{ ansible_host }}"
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.proxy.{{ ssh_proxy }}"
         path: "~/.ssh/known_hosts"
       delegate_to: "localhost"
 
@@ -47,6 +47,6 @@
           {{ key }}
           {% endfor %}
         create: true
-        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.{{ ansible_host }}"
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.{{ inventory_hostname }}"
         path: "~/.ssh/known_hosts"
       delegate_to: "localhost"
