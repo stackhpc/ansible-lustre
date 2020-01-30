@@ -18,5 +18,4 @@ module "cluster" {
   source = "../../modules/cluster"
 
   compute_count = 1
-  network_name = "demo-vxlan"
 }
