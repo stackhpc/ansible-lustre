@@ -146,7 +146,6 @@ resource "openstack_compute_volume_attach_v2" "va_ost1" {
 }
 
 
-
 data  "template_file" "ohpc" {
     template = "${file("${path.module}/inventory.tpl")}"
     vars = {
@@ -165,6 +164,9 @@ EOT
       fip_net1 = "${openstack_networking_floatingip_v2.fip_1.address}"
       fip_net2 = "${openstack_networking_floatingip_v2.fip_2.address}"
       ssh_user_name = "${var.ssh_user_name}"
+      va_mgs = "${openstack_compute_volume_attach_v2.va_mgs.device}"
+      va_mdt1 = "${openstack_compute_volume_attach_v2.va_mdt1.device}"
+      va_ost1 = "${openstack_compute_volume_attach_v2.va_ost1.device}"
     }
     depends_on = [openstack_compute_instance_v2.client1]
 }

@@ -5,11 +5,6 @@ fs_name: test_fs1
 lnet_suffix: "@tcp1"
 
 mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
-mgs: "sdb"
-mdts:
-  - "sdc"
-osts:
-  - "sdd"
 
 lustre_server: "{{ mgsnode }}{{ lnet_suffix }}"
 client_net2: "{{ hostvars[groups['client_net2'][0]]['ansible_host'] }}@tcp2"
