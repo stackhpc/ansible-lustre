@@ -18,11 +18,6 @@ ${lnet2}
 [client_net2]
 ${net2}
 
-[client_net2:vars]
-ssh_proxy=${fip_net2}
-ansible_ssh_common_args='-C -o ControlMaster=auto -o ControlPersist=60s -o ProxyCommand="ssh ${ssh_user_name}@${fip_net2} -W %h:%p"'
-
-
 [lustre_server:children]
 storage_net1
 

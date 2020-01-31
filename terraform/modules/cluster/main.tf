@@ -7,7 +7,7 @@ resource "openstack_compute_keypair_v2" "terraform" {
   public_key = file("${var.ssh_key_file}.pub")
 }
 
-
+# --- net 1 ---
 resource "openstack_networking_network_v2" "net1" {
   name           = "net1"
   admin_state_up = "true"
@@ -41,7 +41,7 @@ resource "openstack_compute_instance_v2" "client1" {
   }
 }
 
-
+# --- net 2 ---
 resource "openstack_networking_network_v2" "net2" {
   name           = "net2"
   admin_state_up = "true"
@@ -69,13 +69,6 @@ resource "openstack_compute_instance_v2" "client2" {
     uuid = "${openstack_networking_network_v2.net2.id}"
   }
 }
-resource "openstack_networking_floatingip_v2" "fip_2" {
-  pool = "${var.floatingip_pool}"
-}
-resource "openstack_compute_floatingip_associate_v2" "fip_2" {
-  floating_ip = "${openstack_networking_floatingip_v2.fip_2.address}"
-  instance_id = "${openstack_compute_instance_v2.client2.id}"
-}
 
 
 resource "openstack_compute_instance_v2" "lnet2" {
@@ -94,6 +87,52 @@ resource "openstack_compute_instance_v2" "lnet2" {
 }
 
 
+# --- net 3 ---
+resource "openstack_networking_network_v2" "net3" {
+  name           = "net3"
+  admin_state_up = "true"
+}
+resource "openstack_networking_subnet_v2" "net3" {
+  name            = "net3"
+  network_id      = "${openstack_networking_network_v2.net3.id}"
+  cidr            = "192.168.43.0/24"
+  dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
+  ip_version      = 4
+}
+resource "openstack_networking_router_interface_v2" "net3" {
+  router_id = "${openstack_networking_router_v2.external.id}"
+  subnet_id = "${openstack_networking_subnet_v2.net3.id}"
+}
+
+
+resource "openstack_compute_instance_v2" "client3" {
+  name = "${var.instance_prefix}-client3"
+  image_name = "${var.image}"
+  flavor_name = "${var.flavor}"
+  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  security_groups = ["default"]
+  network {
+    uuid = "${openstack_networking_network_v2.net3.id}"
+  }
+}
+
+resource "openstack_compute_instance_v2" "lnet3" {
+  name = "${var.instance_prefix}-lnet3"
+  image_name = "${var.image}"
+  flavor_name = "${var.flavor}"
+  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  security_groups = ["default"]
+  config_drive = true
+  network {
+    uuid = "${openstack_networking_network_v2.net2.id}"
+  }
+  network {
+    uuid = "${openstack_networking_network_v2.net3.id}"
+  }
+}
+
+
+# --- lustre server ---
 resource "openstack_compute_instance_v2" "lustre_server" {
   name = "${var.instance_prefix}-storage"
   image_name = "${var.image}"
@@ -145,7 +184,7 @@ resource "openstack_compute_volume_attach_v2" "va_ost1" {
   depends_on  = [openstack_compute_volume_attach_v2.va_mdt1]
 }
 
-
+# --- files ---
 data  "template_file" "ohpc" {
     template = "${file("${path.module}/inventory.tpl")}"
     vars = {
@@ -161,8 +200,13 @@ EOT
       net2 = <<EOT
 ${openstack_compute_instance_v2.client2.name} ansible_host=${openstack_compute_instance_v2.client2.network[0].fixed_ip_v4}
 EOT
+      net3 = <<EOT
+${openstack_compute_instance_v2.client3.name} ansible_host=${openstack_compute_instance_v2.client3.network[0].fixed_ip_v4}
+EOT
+      lnet3 = <<EOT
+${openstack_compute_instance_v2.lnet3.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4} eth1_address=${openstack_compute_instance_v2.lnet3.network[1].fixed_ip_v4}
+EOT
       fip_net1 = "${openstack_networking_floatingip_v2.fip_1.address}"
-      fip_net2 = "${openstack_networking_floatingip_v2.fip_2.address}"
       ssh_user_name = "${var.ssh_user_name}"
       va_mgs = "${openstack_compute_volume_attach_v2.va_mgs.device}"
       va_mdt1 = "${openstack_compute_volume_attach_v2.va_mdt1.device}"
