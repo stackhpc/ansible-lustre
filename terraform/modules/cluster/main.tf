@@ -16,6 +16,7 @@ resource "openstack_networking_subnet_v2" "net1" {
   name            = "net1"
   network_id      = "${openstack_networking_network_v2.net1.id}"
   cidr            = "192.168.41.0/24"
+  dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
   ip_version      = 4
 }
 resource "openstack_networking_router_v2" "external" {
@@ -49,6 +50,7 @@ resource "openstack_networking_subnet_v2" "net2" {
   name            = "net2"
   network_id      = "${openstack_networking_network_v2.net2.id}"
   cidr            = "192.168.42.0/24"
+  dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
   ip_version      = 4
 }
 resource "openstack_networking_router_interface_v2" "net2" {
