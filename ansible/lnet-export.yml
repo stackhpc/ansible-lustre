@@ -8,5 +8,6 @@
     - name: Retrieve config
       fetch:
         src: "/var/tmp/lnet.conf"
-        dest: "lnet-configs"
+        dest: "lnet-configs/{{inventory_hostname}}-lnet.conf"
+        flat: yes
 
