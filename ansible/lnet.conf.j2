@@ -1,13 +1,13 @@
 net:
     - net type: {{ lnet_eth0_net_type }}
       local NI(s):
-        - nid: ansible_eth0.ipv4.address@{{ lnet_eth0_net_type }}
+        - nid: {{ ansible_host }}@{{ lnet_eth0_net_type }}
           interfaces:
               0: eth0
 {% if lnet_eth1_net_type is defined %}
     - net type: {{ lnet_eth1_net_type }}
       local NI(s):
-        - nid: ansible_eth1.ipv4.address@{{ lnet_eth1_net_type}}
+        - nid: {{ eth1_address }}@{{ lnet_eth1_net_type}}
           interfaces:
               0: eth1
 {% endif %}
