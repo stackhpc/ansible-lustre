@@ -200,11 +200,11 @@ EOT
       net2 = <<EOT
 ${openstack_compute_instance_v2.client2.name} ansible_host=${openstack_compute_instance_v2.client2.network[0].fixed_ip_v4}
 EOT
+      lnet3 = <<EOT
+${openstack_compute_instance_v2.lnet3.name} ansible_host=${openstack_compute_instance_v2.lnet3.network[0].fixed_ip_v4} eth1_address=${openstack_compute_instance_v2.lnet3.network[1].fixed_ip_v4}
+EOT
       net3 = <<EOT
 ${openstack_compute_instance_v2.client3.name} ansible_host=${openstack_compute_instance_v2.client3.network[0].fixed_ip_v4}
-EOT
-      lnet3 = <<EOT
-${openstack_compute_instance_v2.lnet3.name} ansible_host=${openstack_compute_instance_v2.lnet2.network[0].fixed_ip_v4} eth1_address=${openstack_compute_instance_v2.lnet3.network[1].fixed_ip_v4}
 EOT
       fip_net1 = "${openstack_networking_floatingip_v2.fip_1.address}"
       ssh_user_name = "${var.ssh_user_name}"
