@@ -1,0 +1,3 @@
+---
+lnet_eth1_net_type: tcp3
+lnet_routing_enabled: true

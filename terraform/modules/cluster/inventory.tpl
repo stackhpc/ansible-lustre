@@ -45,3 +45,19 @@ router_net2_to_net3
 
 [lnet_tcp3:children]
 client_net3
+
+[lnet_router_tcp1_to_tcp2:children]
+router_net1_to_net2
+
+[lnet_router_tcp2_to_tcp3:children]
+router_net2_to_net3
+
+# route definitions below here:
+[lnet_tcp1_from_tcp2:children]
+client_net2
+router_net2_to_net3
+
+[lnet_tcp2_from_tcp1:children]
+storage_net1
+
+[lnet_tcp2_from_tcp3:children]
