@@ -1,0 +1,12 @@
+---
+- hosts: all
+  become: True
+  gather_facts: false
+  tasks:
+    - name: Export lnet conf
+      shell: "lnetctl export > /var/tmp/lnet.conf"
+    - name: Retrieve config
+      fetch:
+        src: "/var/tmp/lnet.conf"
+        dest: "lnet-configs"
+
