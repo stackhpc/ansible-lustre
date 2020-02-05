@@ -1,13 +1,15 @@
 ---
-- name: Check route to server
+- name: Check route to server(s)
   hosts: all
   become: True
   gather_facts: false
   tasks:
-    - command: "lnetctl ping {{ lustre_server }}"
+    - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       changed_when: False
+      with_items:
+        - "{{ groups['lustre_server'] }}"
 
-- name: Check route from server to clients
+- name: Check route from server(s) to clients
   # NB: is this redundant given ping uses both out and back routes? Documents approach at least.
   hosts: lustre_server
   become: True
