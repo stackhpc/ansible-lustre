@@ -57,7 +57,17 @@ router_net2_to_net3
 client_net2
 router_net2_to_net3
 
+[lnet_tcp3_from_tcp2:children]
+router_net1_to_net2
+
 [lnet_tcp2_from_tcp1:children]
 storage_net1
 
 [lnet_tcp2_from_tcp3:children]
+client_net3
+
+[lnet_tcp1_from_tcp3:children]
+client_net3
+
+[lnet_tcp3_from_tcp1:children]
+storage_net1
