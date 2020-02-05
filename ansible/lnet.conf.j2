@@ -15,8 +15,10 @@ net:
 routing:
     - enable: 1
 {% endif %}
-{% if lnet_route_to_net is defined %}
+{% if routes is defined %}
 route:
+{% for lnet_route_to_net, lnet_route_gateway in routes.items() %}
     - net: {{ lnet_route_to_net }}
       gateway: {{ lnet_route_gateway }}
+{% endfor %}
 {% endif %}
