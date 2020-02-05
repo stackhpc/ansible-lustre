@@ -26,7 +26,7 @@
         policy: targeted
         state: permissive
 
-- hosts: lustre_client,luster_router
+- hosts: lustre_client,lustre_router
   gather_facts: false
   become: True
   tasks:
