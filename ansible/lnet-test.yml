@@ -4,7 +4,19 @@
   become: True
   gather_facts: false
   tasks:
-    - name: test server
-      command: "lnetctl ping {{ lustre_server }}"
+    - command: "lnetctl ping {{ lustre_server }}"
       changed_when: False
 
+- name: Check route from server to clients
+  # NB: is this redundant given ping uses both out and back routes? Documents approach at least.
+  hosts: lustre_server
+  become: True
+  gather_facts: false
+  tasks:
+    #- command: "lnetctl ping {{ item }}"
+    #  loop: "{{ groups['lustre_client'] | map('extract', hostvars, 'ansible_host') | list }}"
+    #- debug: var="{{ hostvars[item]['ansible_host'] }}"
+    - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
+      changed_when: False
+      with_items:
+        - "{{ groups['lustre_client'] }}"
