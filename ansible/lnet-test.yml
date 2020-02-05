@@ -22,3 +22,15 @@
       changed_when: False
       with_items:
         - "{{ groups['lustre_client'] }}"
+
+- name: Check clients *cannot* access each other
+  hosts: lustre_client:!router_net1_to_net2:!router_net2_to_net3 # TODO: having separate client/routers groups would be better
+  become: True
+  gather_facts: false
+  tasks:
+    - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
+      register: result
+      failed_when: 'result.rc == 0'
+      changed_when: False
+      with_items: "{{ groups['lustre_client'] | difference(groups['router_net1_to_net2']) | difference(groups['router_net2_to_net3']) | difference([inventory_hostname]) }}"
+      # TODO: again separate client/routers groups would make this easier; note have to remove current hostname to avoid checking self-access
