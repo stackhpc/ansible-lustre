@@ -9,22 +9,19 @@
       with_items:
         - "{{ groups['lustre_server'] }}"
 
-- name: Check route from server(s) to clients
+- name: Check route from server(s) to clients/routers
   # NB: is this redundant given ping uses both out and back routes? Documents approach at least.
   hosts: lustre_server
   become: True
   gather_facts: false
   tasks:
-    #- command: "lnetctl ping {{ item }}"
-    #  loop: "{{ groups['lustre_client'] | map('extract', hostvars, 'ansible_host') | list }}"
-    #- debug: var="{{ hostvars[item]['ansible_host'] }}"
     - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       changed_when: False
       with_items:
-        - "{{ groups['lustre_client'] }}"
+        - "{{ groups['lustre_client'] | intersect(groups['lustre_router']) }}"
 
 - name: Check clients *cannot* access each other
-  hosts: lustre_client:!router_net1_to_net2:!router_net2_to_net3 # TODO: having separate client/routers groups would be better
+  hosts: lustre_client
   become: True
   gather_facts: false
   tasks:
@@ -32,5 +29,4 @@
       register: result
       failed_when: 'result.rc == 0'
       changed_when: False
-      with_items: "{{ groups['lustre_client'] | difference(groups['router_net1_to_net2']) | difference(groups['router_net2_to_net3']) | difference([inventory_hostname]) }}"
-      # TODO: again separate client/routers groups would make this easier; note have to remove current hostname to avoid checking self-access
+      with_items: "{{ groups['lustre_client'] | difference([inventory_hostname]) }}" # avoids checking self-access

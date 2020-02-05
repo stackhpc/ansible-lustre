@@ -31,6 +31,8 @@ storage_net1
 client_net1
 client_net2
 client_net3
+
+[lustre_router:children]
 router_net1_to_net2
 router_net2_to_net3
 

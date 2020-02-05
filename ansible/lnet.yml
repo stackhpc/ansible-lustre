@@ -1,6 +1,6 @@
 ---
 - name: configure and enable lnet
-  hosts: lustre_client,lustre_server
+  hosts: lustre_client,lustre_router,lustre_server
   become: True
   gather_facts: false
   tasks:

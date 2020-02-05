@@ -1,6 +1,6 @@
 ---
 - name: Mount clients
-  hosts: lustre_client
+  hosts: lustre_client,lustre_router
   become: True
   gather_facts: false
   tasks:
