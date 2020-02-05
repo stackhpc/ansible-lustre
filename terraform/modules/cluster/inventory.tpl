@@ -55,17 +55,21 @@ router_net1_to_net2
 router_net2_to_net3
 
 # route definitions below here:
-# NOW done end-to-end
-[route_tcp1_from_tcp3:children] # done
-client_net3
-router_net2_to_net3
-
-[route_tcp3_from_tcp1:children]
-storage_net1
-router_net2_to_net3
-
-[route_tcp1_from_tcp2:children]
+[lnet_tcp1_from_tcp2:children]
 client_net2
+router_net2_to_net3
 
-[route_tcp2_from_tcp1:children]
+[lnet_tcp3_from_tcp2:children]
+router_net1_to_net2
+
+[lnet_tcp2_from_tcp1:children]
+storage_net1
+
+[lnet_tcp2_from_tcp3:children]
+client_net3
+
+[lnet_tcp1_from_tcp3:children]
+client_net3
+
+[lnet_tcp3_from_tcp1:children]
 storage_net1
