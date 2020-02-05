@@ -1,0 +1,4 @@
+routes:
+  tcp1:
+    tcp3: "{{ hostvars[groups['lnet_router_tcp2_to_tcp3'][0]]['eth1_address'] }}"
+    tcp2: "{{ hostvars[groups['lnet_router_tcp1_to_tcp2'][0]]['eth1_address'] }}"

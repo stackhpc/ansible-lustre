@@ -17,5 +17,5 @@
     # TODO: need tools to properly apply lnet to running config
     # Also need tools to assert running config matches the file
     #- name: Import lnet conf
-    #  command: "lnetctl import < /etc/lnet.conf"
+    #  command: "lnetctl import /etc/lnet.conf"
     #  when: lnetconf.changed

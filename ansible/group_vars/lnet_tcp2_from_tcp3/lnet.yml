@@ -1,3 +1,0 @@
----
-lnet_route_to_net: tcp2
-lnet_route_gateway: "{{ hostvars[groups['lnet_router_tcp2_to_tcp3'][0]]['ansible_host'] }}@tcp3"
