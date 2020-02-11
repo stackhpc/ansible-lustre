@@ -1,0 +1,20 @@
+---
+- name: Ensure sufficent entropy
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: install rng-tools
+      yum:
+        name: rng-tools
+        state: present
+    - name: start rngd
+      systemd:
+        name: rngd
+        state: started
+    - name: check entropy OK
+      slurp:
+        src: /proc/sys/kernel/random/entropy_avail
+      register: entropy
+      failed_when: entropy.content | b64decode | int < 250
+    
