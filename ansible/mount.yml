@@ -6,15 +6,17 @@
   tasks:
     - name: ensure mount dir exists
       file:
-        path: "/mnt/lustre/{{ fs_name }}"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
         state: directory
         recurse: yes
+        loop: "{{ mounts }}"
 
     - name: mount lustre fs
       mount:
         fstype: lustre
-        src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
-        path: "/mnt/lustre/{{ fs_name }}"
+        src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}/{{ item }}"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
         state: mounted
         opts: "defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
         # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
+        loop: "{{ mounts }}"
