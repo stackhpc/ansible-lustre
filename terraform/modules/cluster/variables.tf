@@ -19,5 +19,5 @@ variable "floatingip_pool" {
 }
 
 variable "instance_prefix" {
-  default = "ohpc"
+  default = "lustre"
 }
