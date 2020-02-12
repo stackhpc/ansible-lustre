@@ -12,7 +12,8 @@
 
     - name: mount lustre fs
       # TODO: we should use the built in mount system in ansible
-      command: "mount -t lustre {{ mgsnode }}{{ lnet_suffix }}:/{{ fs_name }} /mnt/lustre/{{ fs_name }}"
+      # TODO: see _netdev option and systemd recommendations in http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes 
+      command: "mount -t lustre {{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }} /mnt/lustre/{{ fs_name }}"
       register: command_result
       failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
       changed_when: "command_result.rc == 0"
