@@ -1,0 +1,15 @@
+---
+- name: Create client users for testing # TODO: check user-private groups are ok?
+  hosts: lustre_client
+  become: true
+  gather_facts: false
+  tasks:
+    - name: create groups
+      group:
+        name: "{{ item }}"
+      loop: "{{ users }}" # from groupvars
+    - name: create users
+      user:
+        name: "{{ item }}"
+        groups: "{{ item }}" 
+      loop: "{{ users }}"
