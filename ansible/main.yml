@@ -4,6 +4,7 @@
 - import_playbook: install.yml
 - import_playbook: lnet.yml
 - import_playbook: lnet-test.yml
+# next 3 actually configure "projects"
 - import_playbook: format.yml
 - import_playbook: nodemap.yml
 - import_playbook: mount.yml

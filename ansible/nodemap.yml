@@ -23,6 +23,11 @@
       failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
       changed_when: nodemap_add_range.rc == 0
     
+    - name: configure nodemaps with filesets
+      command: "lctl nodemap_set_fileset --name {{ item }} --fileset '/{{ item }}'"
+      loop: "{{ projects }}"
+      # TODO: need to make permanent too - see docs
+
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
     - name: configure nodemaps to squash users
