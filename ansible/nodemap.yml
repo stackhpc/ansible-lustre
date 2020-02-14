@@ -1,0 +1,55 @@
+---
+
+# TODO: should check not mounted first!
+# IMPORTANT node in docs:
+# > In Lustre 2.9 and later, nodemap configuration is saved on the MGS and distributed automatically to MGS, MDS, and OSS nodes, a process which takes approximately ten seconds in normal circumstances.
+# TODO: might need to add "trusted" nodemap for MGS
+- name: Create nodemaps
+  hosts: lustre_server[0] # TODO: want MGS inventory host
+  become: true
+  gather_facts: false
+  tasks:    
+    - name: add nodemaps
+      command: "lctl nodemap_add {{ item }}"
+      loop: "{{ projects }}"
+      register: nodemap_add
+      failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
+      changed_when: nodemap_add.rc == 0
+
+    - name: add clients to nodemap
+      # TODO: this only copes with ONE mount per client - but maybe that's ok?
+      command: "lctl nodemap_add_range --name {{ hostvars[item]['mounts'][0] }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
+      register: nodemap_add_range
+      loop: "{{ groups['lustre_client'] }}"
+      failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
+      changed_when: nodemap_add_range.rc == 0
+    
+    # TODO: check using lctl get_param nodemap.proj3.ranges?
+    
+    - name: get project user info
+      # NB assumes gid=uid!
+      command: id -u "{{ item }}" # getent module return is much less usable!
+      register: project_users_result
+      loop: "{{ projects }}"
+
+    - set_fact:
+        project_users: "{{ project_users_result.results | items2dict(key_name='item', value_name='stdout') }}"
+    - debug: msg="{{ project_users }}"
+
+    - name: configure nodemaps to squash users
+      # TODO: this has to be done with the nodemap inactive
+      command: "lctl nodemap_modify --name {{ item }} --property squash_uid --value 1" # FIXME: value
+      loop: "{{ projects }}"
+      # note can run this multiple times with no (direct) way to tell if it's changed
+  
+    - name: configure nodemaps to squash groups
+      # TODO: this has to be done with the nodemap inactive
+      command: "lctl nodemap_modify --name {{ item }} --property squash_gid --value 1" # FIXME: value
+      loop: "{{ projects }}"
+
+    - name: activate nodemaps
+      command: "lctl nodemap_activate 1"
+
+
+# setup nodemaps and idmaps
+# setup ssk
