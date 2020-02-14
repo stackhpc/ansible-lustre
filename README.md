@@ -77,5 +77,10 @@ In this code, all of the above configuration is defined in ansible by generating
 - `lnet_router_tcpX_to_tcpY`: These define the 2nd interface for routers and also set the routing enabled flag. So only routers need to be added to these groups. Note that the convention here is that `eth0` goes on the lower-numbered network, and that this is the side ansible uses to configure router nodes.
 - `lnet_tcpX_from_tcpY`: These define routes, so any nodes (clients, storage or routers) which need to access nodes on other networks need to be in one or more of these groups. In the routes `dict` in these groups there should be one entry, with the key defining the "end" network (matching the "X" in the filename) and a value defining the gateway. Note a dict is used with `hash_behaviour = merge` set in `ansible/ansible.cfg` so that nodes can be put in more than one routing group, and will end up with multiple entries in their `routes` var. In the example here this is needed for the storage server, which requires routes to both `tcp2` and `tcp3`.
 
+# Mounted projects
+- Define a list of project names in the `projects` vars in `group_vars/all`. For each project a user (with this name) and directory (with this name, owned by the user) in the lustre filesystem is created on the lustre server.
+- For each client or client group requireing project access define a list `mounts` in `group_vars/client_net*/mounts.yml`. These will be mounted on the clients at `/mnt/lustre/<fs_name>/<project>/` **NB: may change!**.
+TODO: add nodemapes and ssk for these.
+
 # TODO:
 - Swap inventory etc from `ansible_host` to `eth0_address`.
