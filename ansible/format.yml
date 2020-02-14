@@ -1,3 +1,4 @@
+# NB need clients UNMOUNTED and nodemap DEACTIVATED before running this.
 ---
 - name: Format disks
   hosts: lustre_server[0]
@@ -89,12 +90,14 @@
     - name: create project group # TODO: check user-private groups make sense for projects
       group:
         name: "{{ item }}"
+        gid: "{{ project_users[item] }}"
       loop: "{{ projects }}"
 
     - name: create project users # TODO: check user-private groups make sense for projects
       user:
         name: "{{ item }}"
         group: "{{ item }}"
+        uid: "{{ project_users[item] }}"
         create_home: false # FIXME: seems to have created them in /home
       loop: "{{ projects }}"
       
@@ -103,7 +106,7 @@
         path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
         owner: "{{ item }}"
         group: "{{ item }}"
-        #mode: # TODO:?
+        mode: "0777"
         state: directory
       loop: "{{ projects }}"
       

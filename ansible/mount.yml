@@ -3,7 +3,7 @@
   hosts: lustre_client
   become: True
   vars:
-    mount_state: mounted # mounted or absent
+    mount_state: present # mounted or absent
   gather_facts: false
   tasks:
     - name: ensure mount dir exists
@@ -11,7 +11,8 @@
         path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
         # TODO: lustre docs suggest /lustre/<fs_name> is "standard". Possibly [/mnt]/lustre/<project> would be better?
         state: directory
-        recurse: yes
+        #owner: # TODO: does this even matter?
+        #group: # TODO:
       loop: "{{ mounts }}"
 
     - name: mount lustre fs project subdirectories

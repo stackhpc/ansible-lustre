@@ -1,6 +1,5 @@
 ---
-
-# TODO: should check not mounted first!
+# NB need clients UNMOUNTED and nodemap DEACTIVATED before running this.
 # IMPORTANT node in docs:
 # > In Lustre 2.9 and later, nodemap configuration is saved on the MGS and distributed automatically to MGS, MDS, and OSS nodes, a process which takes approximately ten seconds in normal circumstances.
 # TODO: might need to add "trusted" nodemap for MGS
@@ -26,25 +25,15 @@
     
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
-    - name: get project user info
-      # NB assumes gid=uid!
-      command: id -u "{{ item }}" # getent module return is much less usable!
-      register: project_users_result
-      loop: "{{ projects }}"
-
-    - set_fact:
-        project_users: "{{ project_users_result.results | items2dict(key_name='item', value_name='stdout') }}"
-    - debug: msg="{{ project_users }}"
-
     - name: configure nodemaps to squash users
       # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item }} --property squash_uid --value 1" # FIXME: value
+      command: "lctl nodemap_modify --name {{ item }} --property squash_uid --value {{ project_users[item] }}"
       loop: "{{ projects }}"
       # note can run this multiple times with no (direct) way to tell if it's changed
   
     - name: configure nodemaps to squash groups
       # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item }} --property squash_gid --value 1" # FIXME: value
+      command: "lctl nodemap_modify --name {{ item }} --property squash_gid --value {{ project_users[item] }}"
       loop: "{{ projects }}"
 
     - name: activate nodemaps
