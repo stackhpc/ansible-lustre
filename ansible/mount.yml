@@ -1,22 +1,25 @@
 ---
 - name: Mount clients
-  hosts: lustre_client,lustre_router
+  hosts: lustre_client
   become: True
   gather_facts: false
   tasks:
     - name: ensure mount dir exists
       file:
         path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
+        # TODO: lustre docs suggest /lustre/<fs_name> is "standard". Possibly [/mnt]/lustre/<project> would be better?
         state: directory
         recurse: yes
         loop: "{{ mounts }}"
 
-    - name: mount lustre fs
+    - name: mount lustre fs project subdirectories
       mount:
         fstype: lustre
         src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}/{{ item }}"
         path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
+        # submounts are documented in man mount.lustre although not in the docs
         state: mounted
         opts: "defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
         # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
         loop: "{{ mounts }}"
+  

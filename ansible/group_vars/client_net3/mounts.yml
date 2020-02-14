@@ -1,2 +1,5 @@
 mounts:
   - proj3
+users:
+  - catrin
+  - charlie

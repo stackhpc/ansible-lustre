@@ -4,6 +4,6 @@ lustre_release: "2.12.2"
 fs_name: test_fs1
 lnet_suffix: "{{ hostvars[groups['lustre_server'][0]]['lnet_eth0_net_type'] }}"
 mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
-project_dirs:
- - proj12
- - proj3
+projects: # name/directory and uid startpoint
+ - "proj12": 11000
+ - "proj3": 12000
