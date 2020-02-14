@@ -18,7 +18,7 @@
     - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       changed_when: False
       with_items:
-        - "{{ groups['lustre_client'] | intersect(groups['lustre_router']) }}"
+        - "{{ groups['lustre_client'] }}"
 
 - name: Check clients *cannot* access each other
   hosts: lustre_client
