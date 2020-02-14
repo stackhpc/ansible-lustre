@@ -5,5 +5,5 @@ fs_name: test_fs1
 lnet_suffix: "{{ hostvars[groups['lustre_server'][0]]['lnet_eth0_net_type'] }}"
 mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
 projects: # name/directory and uid startpoint
- - "proj12": 11000
- - "proj3": 12000
+ - "proj12"
+ - "proj3"

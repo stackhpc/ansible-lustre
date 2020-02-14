@@ -88,21 +88,21 @@
         # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
     - name: create project group # TODO: check user-private groups make sense for projects
       group:
-        name: "{{ item.keys()[0] }}"
+        name: "{{ item }}"
       loop: "{{ projects }}"
 
     - name: create project users # TODO: check user-private groups make sense for projects
       user:
-        name: "{{ item.keys()[0] }}"
-        group: "{{ item.keys()[0] }}"
+        name: "{{ item }}"
+        group: "{{ item }}"
         create_home: false # FIXME: seems to have created them in /home
       loop: "{{ projects }}"
       
     - name: create project directories
       file:
-        path: "/mnt/lustre/{{ fs_name }}/{{ item.keys()[0] }}"
-        owner: "{{ item.keys()[0] }}"
-        group: "{{ item.keys()[0] }}"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
+        owner: "{{ item }}"
+        group: "{{ item }}"
         #mode: # TODO:?
         state: directory
       loop: "{{ projects }}"
