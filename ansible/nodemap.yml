@@ -11,7 +11,7 @@
   become: true
   gather_facts: false
   tasks:    
-    - name: add nodemaps
+    - name: add client nodemaps
       command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
       loop: "{{ groups['lustre_client'] }}"
       register: nodemap_add
@@ -24,11 +24,34 @@
       loop: "{{ groups['lustre_client'] }}"
       failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
       changed_when: nodemap_add_range.rc == 0
+
+      # TODO: --property deny_unknown --value 1
     
     - name: configure nodemaps with filesets
       command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0].name }}'" # NB no check this is a valid path!
       loop: "{{ groups['lustre_client'] }}"
       # TODO: need to make permanent too - see docs
+
+    - name: add admin nodemap for MGS
+      command: "lctl nodemap_add admin"
+      register: admin_nodemap_add
+      failed_when: admin_nodemap_add.rc != 0 and ('existing nodemap name' not in admin_nodemap_add.stderr)
+      changed_when: admin_nodemap_add.rc == 0
+    
+    - name: add MGS to admin nodemap
+      command: "lctl nodemap_add_range --name admin --range {{ mgsnode }}@{{ lnet_suffix }}"
+      register: admin_nodemap_add_range
+      failed_when: "admin_nodemap_add_range.rc != 0 and ('errno: 12' not in admin_nodemap_add_range.stderr)"
+      changed_when: admin_nodemap_add_range.rc == 0
+    
+    - name: make admin nodemap trusted
+      command: "lctl nodemap_modify --name admin --property trusted --value 1"
+    
+    - name: make admin nodemap admin
+      command: "lctl nodemap_modify --name admin --property admin --value 1"
+    
+    #  command: "lctl nodemap_modify --name admin --property deny_unknown --value 1"
+    
 
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
