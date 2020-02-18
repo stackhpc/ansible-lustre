@@ -7,17 +7,17 @@
 
     - name: create project groups
       group:
-        name: "{{ item.name }}"
-        gid: "{{ item.base }}"
-      loop: "{{ projects }}"
+        name: "{{ item.key }}"
+        gid: "{{ item.value }}"
+      loop: "{{ projects | dict2items }}"
 
     - name: create project users
       user:
-        name: "{{ item.name }}"
-        group: "{{ item.name }}"
-        uid: "{{ item.base }}"
+        name: "{{ item.key }}"
+        group: "{{ item.key }}"
+        uid: "{{ item.value }}"
         create_home: false # FIXME: seems to have created them in /home
-      loop: "{{ projects }}"
+      loop: "{{ projects | dict2items }}"
 
     - name: create project client groups
       group:

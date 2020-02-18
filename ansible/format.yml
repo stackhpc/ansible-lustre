@@ -90,10 +90,10 @@
           
     - name: create project directories with setgid bit set
       file:
-        path: "/mnt/lustre/{{ fs_name }}/{{ item.name }}"
-        owner: "{{ item.name }}"
-        group: "{{ item.name }}"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item.key }}"
+        owner: "{{ item.key }}"
+        group: "{{ item.key }}"
         mode: "2774"
         state: directory
-      loop: "{{ projects }}"
+      loop: "{{ projects | dict2items }}"
       
