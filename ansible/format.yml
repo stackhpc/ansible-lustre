@@ -87,26 +87,13 @@
         state: mounted
         opts: "defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
         # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
-    - name: create project group # TODO: check user-private groups make sense for projects
-      group:
-        name: "{{ item }}"
-        gid: "{{ project_users[item] }}"
-      loop: "{{ projects }}"
-
-    - name: create project users # TODO: check user-private groups make sense for projects
-      user:
-        name: "{{ item }}"
-        group: "{{ item }}"
-        uid: "{{ project_users[item] }}"
-        create_home: false # FIXME: seems to have created them in /home
-      loop: "{{ projects }}"
-      
-    - name: create project directories
+          
+    - name: create project directories with setgid bit set
       file:
-        path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
-        owner: "{{ item }}"
-        group: "{{ item }}"
-        mode: "0777"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item.name }}"
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: "2774"
         state: directory
       loop: "{{ projects }}"
       

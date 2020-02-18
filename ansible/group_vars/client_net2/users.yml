@@ -1,0 +1,6 @@
+users:
+  - becky: 1101 # NB deliberately clashes with a client1 user
+  - ben: 2109
+mounts:
+  - name: proj12
+    squashed: true

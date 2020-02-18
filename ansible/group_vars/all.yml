@@ -4,9 +4,9 @@ lustre_release: "2.12.2"
 fs_name: test_fs1
 lnet_suffix: "{{ hostvars[groups['lustre_server'][0]]['lnet_eth0_net_type'] }}"
 mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
-projects: # name/directory
- - "proj12"
- - "proj3"
-project_users: # uid/gid  - this is for demo only
-  proj12: 1001
-  proj3: 1002
+projects: # name defines project directory
+          # base defines uid/gid for directory owner, starting at 1100 and 1000 apart. Shared users sit in that range.
+  - name: "proj12"
+    base: 1100
+  - name: "proj3"
+    base: 3100

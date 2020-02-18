@@ -1,15 +1,33 @@
 ---
-- name: Create client users for testing # TODO: check user-private groups are ok?
-  hosts: lustre_client
+- name: Create users # TODO: check user-private groups are ok?
+  hosts: lustre_server,lustre_client
   become: true
   gather_facts: false
   tasks:
-    - name: create groups
+
+    - name: create project groups
       group:
-        name: "{{ item }}"
-      loop: "{{ users }}" # from groupvars
-    - name: create users
+        name: "{{ item.name }}"
+        gid: "{{ item.base }}"
+      loop: "{{ projects }}"
+
+    - name: create project users
       user:
-        name: "{{ item }}"
-        groups: "{{ item }}" 
+        name: "{{ item.name }}"
+        group: "{{ item.name }}"
+        uid: "{{ item.base }}"
+        create_home: false # FIXME: seems to have created them in /home
+      loop: "{{ projects }}"
+
+    - name: create project client groups
+      group:
+        name: "{{ item.keys()[0] }}"
+        gid: "{{ item.values()[0] }}"
       loop: "{{ users }}"
+
+    - name: create project client users
+      user:
+        name: "{{ item.keys()[0] }}"
+        group: "{{ item.keys()[0] }}"
+        uid: "{{ item.values()[0] }}"
+      loop: "{{ users }}"        
