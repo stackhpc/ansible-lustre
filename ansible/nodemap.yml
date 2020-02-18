@@ -26,7 +26,7 @@
       changed_when: nodemap_add_range.rc == 0
     
     - name: configure nodemaps with filesets
-      command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0] }}'"
+      command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0].name }}'" # NB no check this is a valid path!
       loop: "{{ groups['lustre_client'] }}"
       # TODO: need to make permanent too - see docs
 
