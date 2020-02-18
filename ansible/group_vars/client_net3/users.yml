@@ -1,6 +1,3 @@
-users:
-  - catrin: 3101 
-  - charlie: 3102
 mounts:
   - name: proj3
     squashed: false

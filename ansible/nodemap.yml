@@ -10,7 +10,12 @@
   hosts: lustre_server[0] # TODO: want MGS inventory host
   become: true
   gather_facts: false
-  tasks:    
+  tasks:
+
+    - name: Load lustre
+      command: modprobe lustre
+      changed_when: False
+
     - name: add client nodemaps
       command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
       loop: "{{ groups['lustre_client'] }}"
@@ -26,7 +31,7 @@
       changed_when: nodemap_add_range.rc == 0
     
     - name: configure nodemaps with filesets
-      command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0].name }}'" # NB no check this is a valid path!
+      command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0].name }}'" # NB can't check this is a valid path!
       loop: "{{ groups['lustre_client'] }}"
       # TODO: need to make permanent too - see docs
 
@@ -51,15 +56,15 @@
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
     - name: configure nodemaps to squash users
-      # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ projects[hostvars[item]['mounts'][0].name] }}"
+      # TODO: this has to be done with the nodemap inactive(?)
+      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ (projects | items2dict(key_name='name', value_name='base'))[hostvars[item]['mounts'][0].name] }}"
       loop: "{{ groups['lustre_client'] }}"
       when: hostvars[item]['mounts'][0].squashed
       # note can run this multiple times with no (direct) way to tell if it's changed
   
     - name: configure nodemaps to squash groups
-      # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ projects[hostvars[item]['mounts'][0].name] }}"
+      # TODO: this has to be done with the nodemap inactive(?)
+      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ (projects | items2dict(key_name='name', value_name='base'))[hostvars[item]['mounts'][0].name] }}"
       loop: "{{ groups['lustre_client'] }}"
       when: hostvars[item]['mounts'][0].squashed
       

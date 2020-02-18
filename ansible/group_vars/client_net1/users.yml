@@ -1,6 +1,3 @@
-users:
-  - alex: 1101
-  - andy: 1102
 mounts:
   - name: proj12
     squashed: false

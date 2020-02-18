@@ -39,6 +39,7 @@
         path: /lustre/MGS
         state: directory
         recurse: yes
+
     - name: mount MGSs
       command: mount -t lustre {{ mgs }} /lustre/MGS
       register: command_result
@@ -73,13 +74,13 @@
       changed_when: "command_result.rc == 0"
       loop: "{{ osts }}"
     
-    - name: create lustre filesystem mountpoint
+    - name: create lustre filesystem mountpoint on MGS
       file:
         path: "/mnt/lustre/{{ fs_name }}"
         state: directory
         recurse: yes
         
-    - name: mount lustre filesystem
+    - name: mount lustre filesystem on MGS
       mount:
         fstype: lustre
         src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
@@ -90,10 +91,10 @@
           
     - name: create project directories with setgid bit set
       file:
-        path: "/mnt/lustre/{{ fs_name }}/{{ item.key }}"
-        owner: "{{ item.key }}"
-        group: "{{ item.key }}"
+        path: "/mnt/lustre/{{ fs_name }}/{{ item.name }}"
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
         mode: "2774"
         state: directory
-      loop: "{{ projects | dict2items }}"
+      loop: "{{ projects }}"
       

@@ -4,6 +4,14 @@ lustre_release: "2.12.2"
 fs_name: test_fs1
 lnet_suffix: "{{ hostvars[groups['lustre_server'][0]]['lnet_eth0_net_type'] }}"
 mgsnode: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
-projects: # key defines project directory, value defines uid/gid for owner (should start at 1100) and start of project user uid/gid range
-  proj12: 1100
-  proj3: 3100
+projects:
+  - name: proj12
+    base: 1100 # uid/gid for owner (should start at 1100) and start of project user uid/gid range
+    shared_users: # users to be on both client and server
+      - alex: 1101
+      - andy: 1102
+  - name: proj3
+    base: 3100
+    shared_users:
+      - catrin: 3101
+      - charlie: 3102

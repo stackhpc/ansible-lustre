@@ -5,7 +5,8 @@
 - import_playbook: lnet.yml
 - import_playbook: lnet-test.yml
 # next 4 actually configure "projects"
-- import_playbook: users.yml
-- import_playbook: format.yml
-- import_playbook: nodemap.yml
-- import_playbook: mount.yml
+#- import_playbook: format.yml # not sure wneed nodemaps and users first
+#- import_playbook: nodemap.yml
+#- import_playbook: users.yml
+
+#- import_playbook: mount.yml
