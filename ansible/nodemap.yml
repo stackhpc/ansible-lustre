@@ -3,44 +3,48 @@
 # IMPORTANT node in docs:
 # > In Lustre 2.9 and later, nodemap configuration is saved on the MGS and distributed automatically to MGS, MDS, and OSS nodes, a process which takes approximately ten seconds in normal circumstances.
 # TODO: might need to add "trusted" nodemap for MGS
+# NB: this creates a nodemap PER CLIENT so that different clients can mount the same submount (e.g. squashed/unsquashed). As a consequence each client can only mount one project, as it can only be in
+# one nodemap.
+      
 - name: Create nodemaps
   hosts: lustre_server[0] # TODO: want MGS inventory host
   become: true
   gather_facts: false
   tasks:    
     - name: add nodemaps
-      command: "lctl nodemap_add {{ item }}"
-      loop: "{{ projects }}"
+      command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
+      loop: "{{ groups['lustre_client'] }}"
       register: nodemap_add
       failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
       changed_when: nodemap_add.rc == 0
 
     - name: add clients to nodemap
-      # TODO: this only copes with ONE mount per client - but maybe that's ok?
-      command: "lctl nodemap_add_range --name {{ hostvars[item]['mounts'][0] }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
+      command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
       register: nodemap_add_range
       loop: "{{ groups['lustre_client'] }}"
       failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
       changed_when: nodemap_add_range.rc == 0
     
     - name: configure nodemaps with filesets
-      command: "lctl nodemap_set_fileset --name {{ item }} --fileset '/{{ item }}'"
-      loop: "{{ projects }}"
+      command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0] }}'"
+      loop: "{{ groups['lustre_client'] }}"
       # TODO: need to make permanent too - see docs
 
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
     - name: configure nodemaps to squash users
       # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item }} --property squash_uid --value {{ project_users[item] }}"
-      loop: "{{ projects }}"
+      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ projects[hostvars[item]['mounts'][0].name] }}"
+      loop: "{{ groups['lustre_client'] }}"
+      when: hostvars[item]['mounts'][0].squashed
       # note can run this multiple times with no (direct) way to tell if it's changed
   
     - name: configure nodemaps to squash groups
       # TODO: this has to be done with the nodemap inactive
-      command: "lctl nodemap_modify --name {{ item }} --property squash_gid --value {{ project_users[item] }}"
-      loop: "{{ projects }}"
-
+      command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ projects[hostvars[item]['mounts'][0].name] }}"
+      loop: "{{ groups['lustre_client'] }}"
+      when: hostvars[item]['mounts'][0].squashed
+      
     - name: activate nodemaps
       command: "lctl nodemap_activate 1"
 

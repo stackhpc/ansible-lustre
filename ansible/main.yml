@@ -7,5 +7,5 @@
 # next 3 actually configure "projects"
 - import_playbook: users.yml
 - import_playbook: format.yml
-#- import_playbook: nodemap.yml
+- import_playbook: nodemap.yml
 #- import_playbook: mount.yml

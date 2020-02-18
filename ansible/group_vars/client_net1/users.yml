@@ -3,3 +3,4 @@ users:
   - andy: 1102
 mounts:
   - name: proj12
+    squashed: false
