@@ -24,8 +24,6 @@
       loop: "{{ groups['lustre_client'] }}"
       failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
       changed_when: nodemap_add_range.rc == 0
-
-      # TODO: --property deny_unknown --value 1
     
     - name: configure nodemaps with filesets
       command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item]['mounts'][0].name }}'" # NB no check this is a valid path!
@@ -50,9 +48,6 @@
     - name: make admin nodemap admin
       command: "lctl nodemap_modify --name admin --property admin --value 1"
     
-    #  command: "lctl nodemap_modify --name admin --property deny_unknown --value 1"
-    
-
     # TODO: check using lctl get_param nodemap.proj3.ranges?
     
     - name: configure nodemaps to squash users
