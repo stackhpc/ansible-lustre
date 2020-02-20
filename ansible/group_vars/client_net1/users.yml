@@ -1,3 +1,11 @@
-mounts:
-  - name: proj12
-    squashed: false
+mount:
+  name: proj12
+  squashed: false
+  trusted: true
+users:
+  alex:
+    guid: 1101
+    groups: [proj12]
+  andy:
+    guid: 1102
+    groups: [proj12]

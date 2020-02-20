@@ -1,0 +1,14 @@
+users:
+  alex:
+    guid: 1101
+    groups: [proj12]
+  andy:
+    guid: 1102
+    groups: [proj12]
+  catrin:
+    guid: 3101
+    groups: [proj12]
+  charlie:
+    guid: 3102
+    groups: [proj12]
+    

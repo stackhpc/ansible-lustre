@@ -73,28 +73,3 @@
       failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
       changed_when: "command_result.rc == 0"
       loop: "{{ osts }}"
-    
-    - name: create lustre filesystem mountpoint on MGS
-      file:
-        path: "/mnt/lustre/{{ fs_name }}"
-        state: directory
-        recurse: yes
-        
-    - name: mount lustre filesystem on MGS
-      mount:
-        fstype: lustre
-        src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
-        path: "/mnt/lustre/{{ fs_name }}"
-        state: mounted
-        opts: "defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
-        # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
-          
-    - name: create project directories with setgid bit set
-      file:
-        path: "/mnt/lustre/{{ fs_name }}/{{ item.name }}"
-        owner: "{{ item.name }}"
-        group: "{{ item.name }}"
-        mode: "2774"
-        state: directory
-      loop: "{{ projects }}"
-      

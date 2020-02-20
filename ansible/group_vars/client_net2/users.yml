@@ -1,6 +1,11 @@
-local_users:
-  - becky: 1101 # NB deliberately clashes with a client1 user
-  - ben: 2109 # NB deliberately doens't exist on server
-mounts:
-  - name: proj12
-    squashed: true
+mount:
+  name: proj12
+  squashed: true
+  trusted: false
+users: # NB neither of these exist on the server
+  becky:
+    guid: 1101 # NB deliberately clashes with a client1 user
+    groups: [proj12] # empty as user not present on server
+  ben:
+    guid: 2109
+    groups: [proj12]

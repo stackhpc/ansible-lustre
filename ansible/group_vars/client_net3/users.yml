@@ -1,3 +1,11 @@
-mounts:
-  - name: proj3
-    squashed: false
+mount:
+  name: proj3
+  squashed: false
+  trusted: true
+users:
+  catrin:
+    guid: 3101
+    groups: [proj3]
+  charlie:
+    guid: 3102
+    groups: [proj3]
