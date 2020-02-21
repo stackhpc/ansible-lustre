@@ -1,6 +1,6 @@
 ---
 - name: Setup projects
-  hosts: lustre_server[0] # TODO: MGS group?
+  hosts: lustre_server[0] # TODO: MGS group? but some of this is server and some is "admin" client ...
   become: true
   gather_facts: false
   tasks:
@@ -9,17 +9,69 @@
     command: modprobe lustre
     changed_when: False
 
+  - name: Configure lustre to use ssk for authentication (only) for client to mdt/ost (only)
+    command: "lctl conf_param {{ fs_name }}.srpc.flavor.default.{{ item }}=skn"
+    loop:
+      - cli2ost
+      - cli2mdt
+    # TODO: use "lctl get_param mgs.*.live.{{ fs_name }}", poss. w/ grep, to check before?
+    # TODO: NB these are ADDITITATIVE so if changed might need to run e.g. lctl conf_param -d test_fs1.srpc.flavor.default
+    # Can use lctl get_param mgs.*.live.test_fs1 to check what's active
+
+  - name: Create lustre config directory
+    file:
+      path: /etc/lustre
+      state: directory # TODO: secure this? keys are created as read-only for root
+
+  - name: create server keys
+    command: "lgss_sk -t server -f {{ fs_name }} -e {{ key_duration }} --nodemap {{ item | replace('-', '_') }} -w /etc/lustre/{{ item | replace('-', '_') }}.server.key"
+    loop: "{{ groups['lustre_client'] }}"
+    register: result
+    failed_when: "result.rc != 0 and 'File exists' not in result.stderr"
+
+  - name: create server key for server
+    command: "lgss_sk -t server -f {{ fs_name }} -e {{ key_duration }} --nodemap admin -w /etc/lustre/{{ inventory_hostname }}.server.key"
+    register: result
+    failed_when: "result.rc != 0 and 'File exists' not in result.stderr"
+  
+  - name: copy server key on server
+    command: "cp -f /etc/lustre/{{ inventory_hostname }}.server.key /etc/lustre/{{ inventory_hostname }}.client.key"
+    # FIXME: this is broken due to name change next step!
+
+  - name: create client key for server
+    # NB this takes a while
+    command:
+      cmd: "lgss_sk -t client -f {{ fs_name }} -e {{ key_duration }} --nodemap admin -m /etc/lustre/{{ inventory_hostname }}.client.key"
+    # can't use creates: due to the copy-first approach
+    # this seems to run ok if it already exists, which is worrying
+
+  - name: add magic words for server ssk auth as client
+    lineinfile:
+      path:  "/etc/request-key.d/lgssc.conf"
+      regexp: "^create lgssc"
+      line: "create lgssc * * /usr/sbin/lgss_keyring %o %k %t %d %c %u %g %T %P %S"
+
+  - name: configure key checking daemon
+    lineinfile:
+      path: "/etc/sysconfig/lsvcgss"
+      regexp: "^LSVCGSSDARGS="
+      line: "LSVCGSSDARGS='-vv -s -m -o'" # verbose, shared-key mode, MDS, OST
+
   - name: create admin nodemap
     command: "lctl nodemap_add admin"
     register: admin_nodemap_add
     failed_when: admin_nodemap_add.rc != 0 and ('existing nodemap name' not in admin_nodemap_add.stderr)
     changed_when: admin_nodemap_add.rc == 0
 
-  - name: add MGS to admin nodemap
+  - name: add server to admin nodemap
     command: "lctl nodemap_add_range --name admin --range {{ mgsnode }}@{{ lnet_suffix }}"
     register: admin_nodemap_add_range
     failed_when: "admin_nodemap_add_range.rc != 0 and ('errno: 12' not in admin_nodemap_add_range.stderr)"
     changed_when: admin_nodemap_add_range.rc == 0
+
+  #- name: start key checking daemon
+  #  command: service lsvcgss start
+  #  # TODO: changed_when: doesn't actually matter if run more than once
 
   - name: make admin nodemap trusted
     command: "lctl nodemap_modify --name admin --property trusted --value 1"
@@ -40,16 +92,23 @@
     file:
       path: "/mnt/lustre/{{ fs_name }}"
       state: directory
-  
-  - name: mount lustre filesystem on MGS
+      # NB: this seems to fail with a "File exists" error if the fs is mounted :-(
+    register: mkdir_lustre_mount
+    #debugger: on_failed
+    failed_when: mkdir_lustre_mount.failed and 'File exists' not in mkdir_lustre_mount.msg
+    # think there's an ansible bug here?
+    
+  - name: mount lustre filesystem on MGS/server
+    # this is so we can add project dirs, really should be on admin client
     mount:
       fstype: lustre
       src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
       path: "/mnt/lustre/{{ fs_name }}"
       state: mounted
-      opts: "defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
+      opts: "skpath=/etc/lustre,defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
       # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
-
+    # manual comamnd: sudo mount -t lustre 192.168.41.10@tcp1:/test_fs1 -o skpath=/etc/lustre /mnt/lustre/test_fs1/
+    
   - name: add client nodemaps
     command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
     loop: "{{ groups['lustre_client'] }}"

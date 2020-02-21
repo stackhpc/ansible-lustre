@@ -7,6 +7,15 @@
   gather_facts: false
   tasks:
 
+# copy keys from mgs to here:
+# then modify them to become client keys
+ # - name: create client keys
+ #   command: "lgss_sk -t client -m /etc/lustre/{{ item | replace('-', '_') }}.client.key"
+ #   loop: "{{ groups['lustre_client'] }}"
+
+ # create  /etc/request-key.d/lgssc.conf file
+
+
     - name: create project owner groups
       group:
         name: "{{ item }}"
