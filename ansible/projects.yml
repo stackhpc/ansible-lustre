@@ -29,28 +29,19 @@
     register: result
     failed_when: "result.rc != 0 and 'File exists' not in result.stderr"
 
-  - name: create server key for server
-    command: "lgss_sk -t server -f {{ fs_name }} -e {{ key_duration }} --nodemap admin -w /etc/lustre/{{ inventory_hostname }}.server.key"
-    register: result
-    failed_when: "result.rc != 0 and 'File exists' not in result.stderr"
+  - name: load server keys
+    # Needed because we  haven't/don't mount the mdt/ost using the skpath option, which would load all the keys anyway
+    command: "lgss_sk -l /etc/lustre/{{ item | replace('-', '_') }}.server.key"
+    loop: "{{ groups['lustre_client'] }}"
+
+  - name: copy keys to control host
+    # workaround for synchronize not working due to ssh setup (?)
+    fetch:
+      src: "/etc/lustre/{{ item | replace('-', '_') }}.server.key"
+      dest: "/tmp/etc/lustre/{{ item | replace('-', '_') }}.server.key"
+      flat: yes
+    loop: "{{ groups['lustre_client'] }}"
   
-  - name: copy server key on server
-    command: "cp -f /etc/lustre/{{ inventory_hostname }}.server.key /etc/lustre/{{ inventory_hostname }}.client.key"
-    # FIXME: this is broken due to name change next step!
-
-  - name: create client key for server
-    # NB this takes a while
-    command:
-      cmd: "lgss_sk -t client -f {{ fs_name }} -e {{ key_duration }} --nodemap admin -m /etc/lustre/{{ inventory_hostname }}.client.key"
-    # can't use creates: due to the copy-first approach
-    # this seems to run ok if it already exists, which is worrying
-
-  - name: add magic words for server ssk auth as client
-    lineinfile:
-      path:  "/etc/request-key.d/lgssc.conf"
-      regexp: "^create lgssc"
-      line: "create lgssc * * /usr/sbin/lgss_keyring %o %k %t %d %c %u %g %T %P %S"
-
   - name: configure key checking daemon
     lineinfile:
       path: "/etc/sysconfig/lsvcgss"
@@ -63,12 +54,14 @@
     failed_when: admin_nodemap_add.rc != 0 and ('existing nodemap name' not in admin_nodemap_add.stderr)
     changed_when: admin_nodemap_add.rc == 0
 
-  - name: add server to admin nodemap
-    command: "lctl nodemap_add_range --name admin --range {{ mgsnode }}@{{ lnet_suffix }}"
+  - name: add client1 to admin nodemap
+    command: "lctl nodemap_add_range --name admin --range {{ hostvars['lustre-client1']['ansible_host'] }}@{{ lnet_eth0_net_type }}" # TODO: remove lustre-client1
     register: admin_nodemap_add_range
     failed_when: "admin_nodemap_add_range.rc != 0 and ('errno: 12' not in admin_nodemap_add_range.stderr)"
     changed_when: admin_nodemap_add_range.rc == 0
 
+  # COMMENTED OUT PURELY CAUSE I'M RUNNING IN FOREGROUND WITH
+  # lsvcgssd -f -vv -s -m -o
   #- name: start key checking daemon
   #  command: service lsvcgss start
   #  # TODO: changed_when: doesn't actually matter if run more than once
@@ -97,78 +90,43 @@
     #debugger: on_failed
     failed_when: mkdir_lustre_mount.failed and 'File exists' not in mkdir_lustre_mount.msg
     # think there's an ansible bug here?
-    
-  - name: mount lustre filesystem on MGS/server
-    # this is so we can add project dirs, really should be on admin client
-    mount:
-      fstype: lustre
-      src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
-      path: "/mnt/lustre/{{ fs_name }}"
-      state: mounted
-      opts: "skpath=/etc/lustre,defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
-      # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
-    # manual comamnd: sudo mount -t lustre 192.168.41.10@tcp1:/test_fs1 -o skpath=/etc/lustre /mnt/lustre/test_fs1/
-    
-  - name: add client nodemaps
-    command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
-    loop: "{{ groups['lustre_client'] }}"
-    register: nodemap_add
-    failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
-    changed_when: nodemap_add.rc == 0
+      
+  # - name: add client nodemaps
+  #   command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: so far know "-" and "." aren't allowed.
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   register: nodemap_add
+  #   failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
+  #   changed_when: nodemap_add.rc == 0
 
-  - name: add clients to client nodemaps
-    command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
-    register: nodemap_add_range
-    loop: "{{ groups['lustre_client'] }}"
-    failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
-    changed_when: nodemap_add_range.rc == 0
+  # - name: add clients to client nodemaps
+  #   command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
+  #   register: nodemap_add_range
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
+  #   changed_when: nodemap_add_range.rc == 0
 
-  - name: configure client nodemaps with filesets
-    command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item].mount.name }}'" # NB can't check this is a valid path!
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: need to make permanent too - see docs
-    # TODO: check using lctl get_param nodemap.proj3.ranges?
+  # #- name: configure client nodemaps with filesets
+  # #  command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item].mount.name }}'" # NB can't check this is a valid path!
+  # #  loop: "{{ groups['lustre_client'] }}"
+  # #  # TODO: need to make permanent too - see docs
+  # #  # TODO: check using lctl get_param nodemap.proj3.ranges?
 
-  - name: configure client nodemaps to squash groups
-    # TODO: has to be done with the nodemap inactive?
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ projects[hostvars[item].mount.name].base }}"
-    loop: "{{ groups['lustre_client'] }}"
-    when: hostvars[item].mount.squashed
+  # - name: configure client nodemaps to squash groups
+  #   # TODO: has to be done with the nodemap inactive?
+  #   command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ projects[hostvars[item].mount.name].base }}"
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   when: hostvars[item].mount.squashed
 
-  - name: configure client nodemaps to squash users
-    # TODO: has to be done with the nodemap inactive?
-    # clientname ->     -> projectname
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ projects[hostvars[item].mount.name].base }}"
-    loop: "{{ groups['lustre_client'] }}"
-    when: hostvars[item].mount.squashed
-    # note can run this multiple times with no (direct) way to tell if it's changed
+  # - name: configure client nodemaps to squash users
+  #   # TODO: has to be done with the nodemap inactive?
+  #   # clientname ->     -> projectname
+  #   command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ projects[hostvars[item].mount.name].base }}"
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   when: hostvars[item].mount.squashed
+  #   # note can run this multiple times with no (direct) way to tell if it's changed
   
-  - name: configure client nodemaps not to translate uid/gids
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property trusted --value 1"
-    loop: "{{ groups['lustre_client'] }}"
-    when: hostvars[item].mount.trusted
+  # - name: configure client nodemaps not to translate uid/gids
+  #   command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property trusted --value 1"
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   when: hostvars[item].mount.trusted
 
-  # TODO: setup ssk
-
-  - name: create project owner groups
-    group:
-      name: "{{ item }}"
-      gid: "{{ projects[item].base }}"
-    loop: "{{ projects.keys() }}"
-
-  - name: create project owner users
-    user:
-      name: "{{ item }}"
-      group: "{{ item }}"
-      uid: "{{ projects[item].base }}"
-      create_home: false # FIXME: seems to have created them in /home
-    loop: "{{ projects.keys() }}"
-
-  - name: create project directories with setgid bit set
-    file:
-      path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
-      owner: "{{ item }}"
-      group: "{{ item }}"
-      mode: "2770"
-      state: directory
-    loop: "{{ projects.keys() }}"

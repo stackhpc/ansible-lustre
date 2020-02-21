@@ -1,0 +1,74 @@
+- name: Setup filesystem
+  hosts: lustre-client1
+  become: true
+  tasks:
+
+  # # This doesn't work, says "Data could not be sent to remote host \"lustre_server[0]\". Make sure this host can be reached over ssh: channel 0: open failed: administratively prohibited: open failed\r\nstdio forwarding failed\r\nssh_exchange_identification: Connection closed by remote host\r\n
+  # - name: copy server key from server
+  #   synchronize:
+  #     dest: "/etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+  #     src: "/etc/lustre/{{ inventory_hostname | replace('-', '_') }}.server.key"
+  #     mode: pull
+  #   delegate_to: lustre_server[0]
+
+  - name: Create lustre config directory
+    file:
+      path: /etc/lustre
+      state: directory # TODO: secure this? keys are created as read-only for root
+      mode: 0777
+
+  - name: copy server key from control host
+    copy:
+      src: "/tmp/etc/lustre/{{ item | replace('-', '_') }}.server.key"
+      dest: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
+      mode: "u=wr,g=,o="
+    loop:
+      - "{{ inventory_hostname }}"
+    become: false
+
+  - name: create client key
+    # NB this takes a while
+    command:
+      cmd: "lgss_sk -t client -f {{ fs_name }} -e {{ key_duration }} --nodemap admin -m /etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+    # can't use creates: due to the copy-first approach :-( - would have to run `lgss_sk -r <keyfile>` and check if it contains "Type:           client"
+    # this seems to run ok if it already exists, which is worrying
+  
+  - name: configure request-key
+    lineinfile:
+      path:  "/etc/request-key.d/lgssc.conf"
+      regexp: "^create lgssc"
+      line: "create lgssc * * /usr/sbin/lgss_keyring %o %k %t %d %c %u %g %T %P %S"
+
+  - name: mount lustre filesystem on admin  # so we can add project dirs
+    mount:
+      fstype: lustre
+      src: "{{ mgsnode }}@{{ lnet_suffix }}:/{{ fs_name }}"
+      path: "/mnt/lustre/{{ fs_name }}"
+      state: mounted
+      opts: "skpath=/etc/lustre,defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
+      # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
+      # manual comamnd: sudo mount -t lustre 192.168.41.10@tcp1:/test_fs1 -o skpath=/etc/lustre /mnt/lustre/test_fs1/
+  
+
+  #   - name: create project owner groups
+  #   group:
+  #     name: "{{ item }}"
+  #     gid: "{{ projects[item].base }}"
+  #   loop: "{{ projects.keys() }}"
+
+  # - name: create project owner users
+  #   user:
+  #     name: "{{ item }}"
+  #     group: "{{ item }}"
+  #     uid: "{{ projects[item].base }}"
+  #     create_home: false # FIXME: seems to have created them in /home
+  #   loop: "{{ projects.keys() }}"
+
+  # - name: create project directories with setgid bit set
+  #   file:
+  #     path: "/mnt/lustre/{{ fs_name }}/{{ item }}"
+  #     owner: "{{ item }}"
+  #     group: "{{ item }}"
+  #     mode: "2770"
+  #     state: directory
+  #   loop: "{{ projects.keys() }}"
