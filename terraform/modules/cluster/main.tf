@@ -14,7 +14,7 @@ resource "openstack_networking_network_v2" "net1" {
 }
 resource "openstack_networking_subnet_v2" "net1" {
   name            = "net1"
-  network_id      = "${openstack_networking_network_v2.net1.id}"
+  network_id      = openstack_networking_network_v2.net1.id
   cidr            = "192.168.41.0/24"
   dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
   ip_version      = 4
@@ -22,33 +22,33 @@ resource "openstack_networking_subnet_v2" "net1" {
 resource "openstack_networking_router_v2" "external" {
   name                = "external"
   admin_state_up      = "true"
-  external_network_id = "${data.openstack_networking_network_v2.internet.id}"
+  external_network_id = data.openstack_networking_network_v2.internet.id
 }
 resource "openstack_networking_router_interface_v2" "net1" {
-  router_id = "${openstack_networking_router_v2.external.id}"
-  subnet_id = "${openstack_networking_subnet_v2.net1.id}"
+  router_id = openstack_networking_router_v2.external.id
+  subnet_id = openstack_networking_subnet_v2.net1.id
 }
 
 
 resource "openstack_compute_instance_v2" "client1" {
   name = "${var.instance_prefix}-client1"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    uuid = "${openstack_networking_network_v2.net1.id}"
+    uuid = openstack_networking_network_v2.net1.id
   }
 }
 
 resource "openstack_compute_instance_v2" "admin" {
   name = "${var.instance_prefix}-admin"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    uuid = "${openstack_networking_network_v2.net1.id}"
+    uuid = openstack_networking_network_v2.net1.id
   }
 }
 
@@ -59,41 +59,41 @@ resource "openstack_networking_network_v2" "net2" {
 }
 resource "openstack_networking_subnet_v2" "net2" {
   name            = "net2"
-  network_id      = "${openstack_networking_network_v2.net2.id}"
+  network_id      = openstack_networking_network_v2.net2.id
   cidr            = "192.168.42.0/24"
   dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
   ip_version      = 4
 }
 resource "openstack_networking_router_interface_v2" "net2" {
-  router_id = "${openstack_networking_router_v2.external.id}"
-  subnet_id = "${openstack_networking_subnet_v2.net2.id}"
+  router_id = openstack_networking_router_v2.external.id
+  subnet_id = openstack_networking_subnet_v2.net2.id
 }
 
 
 resource "openstack_compute_instance_v2" "client2" {
   name = "${var.instance_prefix}-client2"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    uuid = "${openstack_networking_network_v2.net2.id}"
+    uuid = openstack_networking_network_v2.net2.id
   }
 }
 
 
 resource "openstack_compute_instance_v2" "lnet2" {
   name = "${var.instance_prefix}-lnet2"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   config_drive = true
   network {
-    uuid = "${openstack_networking_network_v2.net1.id}"
+    uuid = openstack_networking_network_v2.net1.id
   }
   network {
-    uuid = "${openstack_networking_network_v2.net2.id}"
+    uuid = openstack_networking_network_v2.net2.id
   }
 }
 
@@ -105,40 +105,40 @@ resource "openstack_networking_network_v2" "net3" {
 }
 resource "openstack_networking_subnet_v2" "net3" {
   name            = "net3"
-  network_id      = "${openstack_networking_network_v2.net3.id}"
+  network_id      = openstack_networking_network_v2.net3.id
   cidr            = "192.168.43.0/24"
   dns_nameservers = ["8.8.8.8", "8.8.4.4"] #["131.111.8.42, 131.111.12.20]
   ip_version      = 4
 }
 resource "openstack_networking_router_interface_v2" "net3" {
-  router_id = "${openstack_networking_router_v2.external.id}"
-  subnet_id = "${openstack_networking_subnet_v2.net3.id}"
+  router_id = openstack_networking_router_v2.external.id
+  subnet_id = openstack_networking_subnet_v2.net3.id
 }
 
 
 resource "openstack_compute_instance_v2" "client3" {
   name = "${var.instance_prefix}-client3"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    uuid = "${openstack_networking_network_v2.net3.id}"
+    uuid = openstack_networking_network_v2.net3.id
   }
 }
 
 resource "openstack_compute_instance_v2" "lnet3" {
   name = "${var.instance_prefix}-lnet3"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   config_drive = true
   network {
-    uuid = "${openstack_networking_network_v2.net2.id}"
+    uuid = openstack_networking_network_v2.net2.id
   }
   network {
-    uuid = "${openstack_networking_network_v2.net3.id}"
+    uuid = openstack_networking_network_v2.net3.id
   }
   user_data = "#!/usr/bin/bash\nsudo ip route add 192.168.41.0/24 via 192.168.42.1"
 }
@@ -147,12 +147,12 @@ resource "openstack_compute_instance_v2" "lnet3" {
 # --- lustre server ---
 resource "openstack_compute_instance_v2" "lustre_server" {
   name = "${var.instance_prefix}-storage"
-  image_name = "${var.image}"
-  flavor_name = "${var.flavor}"
-  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
   security_groups = ["default"]
   network {
-    uuid = "${openstack_networking_network_v2.net1.id}"
+    uuid = openstack_networking_network_v2.net1.id
   }
 }
 
@@ -160,8 +160,8 @@ resource "openstack_networking_floatingip_v2" "fip_1" {
   pool = var.floatingip_pool
 }
 resource "openstack_compute_floatingip_associate_v2" "fip_1" {
-  floating_ip = "${openstack_networking_floatingip_v2.fip_1.address}"
-  instance_id = "${openstack_compute_instance_v2.lustre_server.id}"
+  floating_ip = openstack_networking_floatingip_v2.fip_1.address
+  instance_id = openstack_compute_instance_v2.lustre_server.id
 }
 
 resource "openstack_blockstorage_volume_v3" "mgs" {
@@ -231,6 +231,6 @@ EOT
 }
 
 resource "local_file" "hosts" {
-  content  = "${data.template_file.ohpc.rendered}"
+  content  = data.template_file.ohpc.rendered
   filename = "${path.cwd}/ansible_inventory"
 }
