@@ -24,6 +24,9 @@ ${lnet3}
 [client_net3]
 ${net3}
 
+[admin_client]
+${admin}
+
 [lustre_server:children]
 storage_net1
 
@@ -31,6 +34,7 @@ storage_net1
 client_net1
 client_net2
 client_net3
+admin_client
 
 [lustre_router:children]
 router_net1_to_net2

@@ -41,6 +41,17 @@ resource "openstack_compute_instance_v2" "client1" {
   }
 }
 
+resource "openstack_compute_instance_v2" "admin" {
+  name = "${var.instance_prefix}-admin"
+  image_name = "${var.image}"
+  flavor_name = "${var.flavor}"
+  key_pair = "${openstack_compute_keypair_v2.terraform.name}"
+  security_groups = ["default"]
+  network {
+    uuid = "${openstack_networking_network_v2.net1.id}"
+  }
+}
+
 # --- net 2 ---
 resource "openstack_networking_network_v2" "net2" {
   name           = "net2"
@@ -206,6 +217,9 @@ ${openstack_compute_instance_v2.lnet3.name} ansible_host=${openstack_compute_ins
 EOT
       net3 = <<EOT
 ${openstack_compute_instance_v2.client3.name} ansible_host=${openstack_compute_instance_v2.client3.network[0].fixed_ip_v4}
+EOT
+      admin = <<EOT
+${openstack_compute_instance_v2.admin.name} ansible_host=${openstack_compute_instance_v2.admin.network[0].fixed_ip_v4}
 EOT
       fip_net1 = "${openstack_networking_floatingip_v2.fip_1.address}"
       ssh_user_name = "${var.ssh_user_name}"
