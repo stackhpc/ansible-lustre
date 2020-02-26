@@ -7,6 +7,7 @@
 - import_playbook: format.yml
 # next 3 actually configure "projects"
 - import_playbook: projects.yml
+- import_playbook: admin.yml
 - import_playbook: mount.yml
 - import_playbook: users.yml
 
