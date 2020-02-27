@@ -95,6 +95,7 @@
     register: nodemap_add
     failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
     changed_when: nodemap_add.rc == 0
+    # TODO: remove any existing nodemaps which aren't client ones
 
   - name: add clients to nodemaps
     command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
@@ -102,6 +103,7 @@
     loop: "{{ groups['lustre_client'] }}"
     failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
     changed_when: nodemap_add_range.rc == 0
+    # TODO: remove any incorrect ranges
 
   - name: configure client nodemap filesets
     command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '{{ hostvars[item].lustre.fileset }}'" # NB can't check this is a valid path here!
