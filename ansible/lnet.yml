@@ -1,21 +1,19 @@
 ---
-- name: configure and enable lnet
-  hosts: lustre_client,lustre_router,lustre_server
-  become: True
-  gather_facts: false
-  tasks:
-    - name: Write out lnet config
-      template:
-        src: lnet.conf.j2
-        dest: /etc/lnet.conf
-      register: lnetconf
-    - name: Ensure lnet is started
-      service:
-        name: lnet
-        state: started
-        enabled: true
-    # TODO: need tools to properly apply lnet to running config
-    # Also need tools to assert running config matches the file
-    #- name: Import lnet conf
-    #  command: "lnetctl import < /etc/lnet.conf"
-    #  when: lnetconf.changed
+#- name: configure and enable lnet
+  #hosts: lustre_client,lustre_router,lustre_server
+- name: Write out lnet config
+  template:
+    src: lnet.conf.j2
+    dest: /etc/lnet.conf
+  register: lnetconf
+- name: Ensure lnet is started
+  service:
+    name: lnet
+    state: started
+    enabled: true
+- name: Import lnet conf
+  command: "lnetctl import < /etc/lnet.conf"
+  
+# TODO: this is a bit half-hearted as will only add, not delete
+#       could use lnetctl route show  and lnetctl del --net --gateway to delete stuff
+# TODO: Add check that running config matches the file

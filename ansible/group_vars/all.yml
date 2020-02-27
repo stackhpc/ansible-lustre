@@ -16,4 +16,4 @@ lustre: # can all be overriden on a per-client basis
   admin: False
   fileset: '' # Use /DIRNAME to mount to a specific subdir and restrict client to that
   mount_point: /mnt/lustre/
-  ssk_flavor: 'null' # e.g. skn or 'null' (not null, that's different!) to disable TODO: This can't be changed per-client, so where does it belong?
+  ssk_flavor: 'skn' # e.g. skn or 'null' (not null, that's different!) to disable TODO: This can't be changed per-client, so where does it belong?

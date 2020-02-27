@@ -1,0 +1,90 @@
+---
+- name: Configure lustre client
+  hosts: admin_client # lustre_client
+  gather_facts: false
+  become: True
+  vars:
+    mount_state: mounted # use mounted or absent
+    # document what's currently provided from group_vars here
+    # for project user/group names/guids:
+      # projects[item].base
+      # projects.keys()
+    # for mount:
+      # lustre.mount_point
+      # lustre.mgs_addr
+      # lustre.mgs_lnet
+      # lustre.fs_name
+
+  tasks:
+  - name: configure proxy and client keys
+    import_tasks: ssh.yml
+    become: False
+  - name: add entropy
+    import_tasks: entropy.yml
+  - name: enable lustre client repo
+    yum_repository:
+      name: lustre-client
+      description: lustre-client
+      file: lustre-repo
+      baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre.release }}/el7/client
+      gpgcheck: no
+  - name: ensure kernel headers available
+    package:
+      # EPEL needed to install dkms
+      name: kernel-devel,epel-release
+  - name: Install Lustre Client DKMS
+    yum:
+      name: "lustre-client-dkms-{{ lustre.release }}"
+      state: present
+  - name: Install Lustre Client kmods
+    yum:
+      name: "kmod-lustre-client-{{ lustre.release }}"
+      state: present
+  - name: Install Lustre Client
+    yum:
+      name: "lustre-client-{{ lustre.release }}"
+      state: present
+  - name: Put SELinux in permissive mode, logging actions that would be blocked.
+    selinux:
+      policy: targeted
+      state: permissive
+  - name: configure and enable lnet
+    import_tasks: lnet.yml
+  # TODO: lnet-test
+
+  - name: create project owner groups
+    group:
+      name: "{{ item }}"
+      gid: "{{ projects[item].base }}"
+    loop: "{{ projects.keys() }}"
+
+  - name: create project owner users
+    user:
+      name: "{{ item }}"
+      group: "{{ item }}"
+      uid: "{{ projects[item].base }}"
+      create_home: false # FIXME: seems to have created them in /home
+    loop: "{{ projects.keys() }}"
+
+  - name: raise client GSS key debug level
+    command:
+      cmd: "lctl set_param sptlrpc.gss.lgss_keyring.debug_level{{'='}}3"
+      removes: "/etc/lustre{{ inventory_hostname | replace('-', '_') }}.client.key }}" # doesn't actually remove, but skips if not using ssk
+      
+  - name: mount lustre project subdirectory
+    # NB: actual subdir may be determined by fileset on client's nodemap
+    mount:
+      fstype: lustre
+      src: "{{ lustre.mgs_addr }}@{{ lustre.mgs_lnet }}:/{{ lustre.fs_name }}"
+      path: "{{ lustre.mount_point }}"
+      state: "{{ mount_state }}"
+      opts: "skpath=/etc/lustre,defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
+      # TODO: add skpath=/etc/lustre - actually is this oK as long as we always create it - just might not have any keys in it.
+      # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
+
+  # mount
+  # users
+
+  
+  
+  

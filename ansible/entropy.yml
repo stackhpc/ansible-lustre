@@ -1,27 +1,22 @@
 ---
-- name: Ensure sufficent entropy
-  hosts: all
-  gather_facts: false
-  become: true
-  tasks:
-    - name: install rng-tools
-      yum:
-        name: rng-tools
-        state: present
-    - name: start rngd
-      systemd:
-        name: rngd
-        state: started
-    # rngd takes a couple of seconds to start on VMs; tries/fails to init H/W entropy source before falling back
-    - name: wait for service start 
-      shell: service rngd status
-      register: rngd_status
-      until: rngd_status.stdout.find("active (running)") != -1
-      retries: 20
-      delay: 1
-    - name: check entropy OK
-      slurp:
-        src: /proc/sys/kernel/random/entropy_avail
-      register: entropy
-      failed_when: entropy.content | b64decode | int < 250
-    
+# hosts: all
+- name: install rng-tools
+  yum:
+    name: rng-tools
+    state: present
+- name: start rngd
+  systemd:
+    name: rngd
+    state: started
+# rngd takes a couple of seconds to start on VMs; tries/fails to init H/W entropy source before falling back
+- name: wait for service start 
+  shell: service rngd status
+  register: rngd_status
+  until: rngd_status.stdout.find("active (running)") != -1
+  retries: 20
+  delay: 1
+- name: check entropy OK
+  slurp:
+    src: /proc/sys/kernel/random/entropy_avail
+  register: entropy
+  failed_when: entropy.content | b64decode | int < 250
