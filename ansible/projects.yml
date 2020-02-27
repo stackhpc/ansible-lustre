@@ -17,6 +17,7 @@
     loop:
       - cli2ost
       - cli2mdt
+    when: "lustre.ssk_flavor != 'null'"
     # TODO: changed_when
     # TODO: use "lctl get_param mgs.*.live.{{ lustre.fs_name }}", poss. w/ grep, to check before?
     # TODO: NB these are ADDITITATIVE so if changed might need to run e.g. lctl conf_param -d test_fs1.srpc.flavor.default
@@ -32,12 +33,14 @@
       cmd: "lgss_sk -t server -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap {{ item | replace('-', '_') }} -w /etc/lustre/{{ item | replace('-', '_') }}.server.key"
       creates: "/etc/lustre/{{ item | replace('-', '_') }}.server.key"
     loop: "{{ groups['lustre_client'] }}"
+    when: "lustre.ssk_flavor != 'null'"
 
   - name: copy server keys to client keys (on server)
     command:
       cmd: "cp /etc/lustre/{{ item | replace('-', '_') }}.server.key /etc/lustre/{{ item | replace('-', '_') }}.client.key"
       creates: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
     loop: "{{ groups['lustre_client'] }}"
+    when: "lustre.ssk_flavor != 'null'"
 
   - name: check if client keys have already been modified
     shell: "lgss_sk -r /etc/lustre/{{ item | replace('-', '_') }}.client.key | grep -c client"
@@ -45,21 +48,23 @@
     register: client_keyfiles
     loop: "{{ groups['lustre_client'] }}"
     changed_when: False
+    when: "lustre.ssk_flavor != 'null'"
 
   - name: create client keys (on server)
     # This is really slow
     command: 
       cmd: "lgss_sk -t client -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap admin -m /etc/lustre/{{ item.item | replace('-', '_') }}.client.key"
-    when: "item.stdout == '1'"
+    when: "'stdout' in item and item.stdout == '1'" # "in" test is False if above check was skipped (because ssk_flavor == 'null')
     changed_when: "item.stdout == '0'"
     loop: "{{ client_keyfiles.results }}" # is effectively over groups['lustre_client'] again
     loop_control:
       label: "{{ item.item }}"
-    
+
   - name: load server keys
     # Needed because we haven't/don't mount the mdt/ost using the skpath option, which would load all the keys anyway
     command: "lgss_sk -l /etc/lustre/{{ item | replace('-', '_') }}.server.key"
     loop: "{{ groups['lustre_client'] }}"
+    when: "lustre.ssk_flavor != 'null'"
     # TODO: changed_when
 
   # - name: copy keys to control host
@@ -75,10 +80,12 @@
       path: "/etc/sysconfig/lsvcgss"
       regexp: "^LSVCGSSDARGS="
       line: "LSVCGSSDARGS='-vv -s -m -o'" # verbose, shared-key mode, MDS, OST
+    when: "lustre.ssk_flavor != 'null'"
     # TODO: changed_when
 
   - name: start key checking daemon
     command: service lsvcgss start
+    when: "lustre.ssk_flavor != 'null'"
     # TODO: changed_when: doesn't actually matter if run more than once
     # note to start in foreground use: lsvcgssd -f -vv -s -m -o
 
