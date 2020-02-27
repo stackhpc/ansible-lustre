@@ -1,0 +1,5 @@
+lustre:
+  trusted: True
+  admin: True
+  ssk_flavor: False
+  
