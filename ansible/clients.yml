@@ -1,0 +1,9 @@
+- name: Configure lustre clients
+  hosts: lustre_client
+  gather_facts: false
+  become: True
+  vars:
+    mount_state: mounted # use mounted or absent
+  tasks:
+    - import_tasks: client.yml
+    

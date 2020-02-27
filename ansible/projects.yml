@@ -77,6 +77,7 @@
       state: directory
     delegate_to: "{{ item }}"
     loop: "{{ groups['lustre_client'] }}"
+    # NB: we do this even if we're not using ssk as then clients can always mount with skpath=/etc/lustre, it just won't load any keys if it's empty.
 
   - name: write client keys to clients
     copy:
@@ -158,12 +159,18 @@
     loop: "{{ groups['lustre_client'] }}"
     # TODO: changed_when
 
-# can't pull FROM client as it can't ssh into mgs
-  # - name: copy client keys to clients
-  #   synchronize:
-  #     src: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
-  #     dest: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
-  #     mode: pull
-  #   when: "lustre.ssk_flavor != 'null'"
-  #   delegate_to: "{{ item }}"
-  #   loop: "{{ groups['lustre_client'] }}"
+- name: setup project directories
+  hosts: admin_client
+  become: true
+  vars:
+    mount_state: mounted
+  tasks:
+    - import_tasks: client.yml
+    - name: create project directories
+      file:
+        path: "/mnt/lustre/{{ item.key }}"
+        owner: "{{ item.key }}"
+        group: "{{ item.key }}"
+        state: directory
+      loop: "{{ projects | dict2items }}"
+      

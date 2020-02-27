@@ -1,21 +1,15 @@
 ---
-- name: Configure lustre client
-  hosts: admin_client # lustre_client
-  gather_facts: false
-  become: True
-  vars:
-    mount_state: mounted # use mounted or absent
-    # document what's currently provided from group_vars here
-    # for project user/group names/guids:
-      # projects[item].base
-      # projects.keys()
-    # for mount:
-      # lustre.mount_point
-      # lustre.mgs_addr
-      # lustre.mgs_lnet
-      # lustre.fs_name
+# also needs mount_state
+# document what's currently provided from group_vars here
+# for project user/group names/guids:
+  # projects[item].base
+  # projects.keys()
+# for mount:
+  # lustre.mount_point
+  # lustre.mgs_addr
+  # lustre.mgs_lnet
+  # lustre.fs_name
 
-  tasks:
   - name: configure proxy and client keys
     import_tasks: ssh.yml
     become: False
@@ -70,6 +64,8 @@
     command:
       cmd: "lctl set_param sptlrpc.gss.lgss_keyring.debug_level{{'='}}3"
       removes: "/etc/lustre{{ inventory_hostname | replace('-', '_') }}.client.key }}" # doesn't actually remove, but skips if not using ssk
+    # TODO: this doesn't work, try
+    # "echo 3 > /proc/fs/lustre/sptlrpc/gss/lgss_keyring/debug_level" instead
       
   - name: mount lustre project subdirectory
     # NB: actual subdir may be determined by fileset on client's nodemap
@@ -82,7 +78,6 @@
       # TODO: add skpath=/etc/lustre - actually is this oK as long as we always create it - just might not have any keys in it.
       # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
 
-  # mount
   # users
 
   
