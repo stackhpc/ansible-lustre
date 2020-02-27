@@ -4,16 +4,16 @@ projects:
     base: 1100 # uid/gid for owner (should start at 1100) and start of shared project user uid/gid range
   proj3:
     base: 3100
-lustre:
+lustre: # can all be overriden on a per-client basis
   release: "2.12.2"
   fs_name: test_fs1
-  key_duration: 525600 # duration (s) lustre keys valid for
+  key_duration: 525600 # duration (s) of lustre key validity
   mgs_addr: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"
   mgs_lnet: "{{ hostvars[groups['lustre_server'][0]]['lnet_eth0_net_type'] }}"
-  squash_group: False # NB if false it IS squashed - to 99. Else use or project name
+  squash_group: False # NB if false it IS squashed - to 99. Else use group name (not gid) e.g. project name
   squash_user: False  # ditto
   trusted: False
   admin: False
-  fileset: False # or subdirectory
+  fileset: '' # Use /DIRNAME to mount to a specific subdir and restrict client to that
   mount_point: /mnt/lustre/
-  ssk_flavor:  skn
+  ssk_flavor:  skn # or null to disable

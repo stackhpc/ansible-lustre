@@ -3,6 +3,9 @@
   hosts: lustre_server[0] # TODO: MGS group?
   become: true
   gather_facts: false
+  vars:
+    default_squash_gid: 99
+    default_squash_uid: 99
   tasks:
 
   - name: load lustre
@@ -29,8 +32,6 @@
       cmd: "lgss_sk -t server -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap {{ item | replace('-', '_') }} -w /etc/lustre/{{ item | replace('-', '_') }}.server.key"
       creates: "/etc/lustre/{{ item | replace('-', '_') }}.server.key"
     loop: "{{ groups['lustre_client'] }}"
-    #register: result
-    #failed_when: "result.rc != 0 and 'File exists' not in result.stderr"
 
   - name: copy server keys to client keys (on server)
     command:
@@ -51,7 +52,7 @@
       cmd: "lgss_sk -t client -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap admin -m /etc/lustre/{{ item.item | replace('-', '_') }}.client.key"
     when: "item.stdout == '1'"
     changed_when: "item.stdout == '0'"
-    loop: "{{ client_keyfiles.results }}"
+    loop: "{{ client_keyfiles.results }}" # is effectively over groups['lustre_client'] again
     loop_control:
       label: "{{ item.item }}"
     
@@ -59,6 +60,7 @@
     # Needed because we haven't/don't mount the mdt/ost using the skpath option, which would load all the keys anyway
     command: "lgss_sk -l /etc/lustre/{{ item | replace('-', '_') }}.server.key"
     loop: "{{ groups['lustre_client'] }}"
+    # TODO: changed_when
 
   # - name: copy keys to control host
   #   # workaround for synchronize not working due to ssh setup (?)
@@ -73,6 +75,7 @@
       path: "/etc/sysconfig/lsvcgss"
       regexp: "^LSVCGSSDARGS="
       line: "LSVCGSSDARGS='-vv -s -m -o'" # verbose, shared-key mode, MDS, OST
+    # TODO: changed_when
 
   - name: start key checking daemon
     command: service lsvcgss start
@@ -101,29 +104,33 @@
     changed_when: nodemap_add_range.rc == 0
 
   - name: configure client nodemap filesets
-    command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '/{{ hostvars[item].lustre.fileset }}'" # NB can't check this is a valid path here!
+    command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '{{ hostvars[item].lustre.fileset }}'" # NB can't check this is a valid path here!
     loop: "{{ groups['lustre_client'] }}"
-    when: "{{ hostvars[item].lustre.fileset != False }}"
     # TODO: need to make permanent too - see docs
     # TODO: check using lctl get_param nodemap.proj3.ranges?
+    # TODO: changed_when
 
   - name: configure client nodemaps group squash
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ projects[hostvars[item].lustre.squash_group].base }}"
+    # lctl takes gid but we defined group name in group_vars. If name is False, use (lustre default gid) 99 else lookup gid from projects var.
+    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ 99 if (hostvars[item].lustre.squash_group == False) else projects[hostvars[item].lustre.squash_group].base }}"
     loop: "{{ groups['lustre_client'] }}"
-    when: hostvars[item].lustre.squash_group != False  # rely on default lustre squshing to 99 otherwise
+    # TODO: if this is set from <name> to False at the moment it won't reset to default 99..
     # TODO: need to make permanent too - see docs
     # can run these multiple times with no (direct) way to tell if it's changed
+    # TODO: changed_when
 
   - name: configure client nodemaps user squash
     # comments as for group squash above
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ projects[hostvars[item].lustre.squash_user].base }}"
+    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ 99 if (hostvars[item].lustre.squash_user == False) else projects[hostvars[item].lustre.squash_user].base }}"
     loop: "{{ groups['lustre_client'] }}"
-    when: hostvars[item].lustre.squash_user != False
+    # TODO: changed_when
   
   - name: configure client nodemaps trusted property
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property trusted --value {{ hostvars[item].mount.trusted|int }}"
+    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property trusted --value {{ hostvars[item].lustre.trusted|int }}"
     loop: "{{ groups['lustre_client'] }}"
+    # TODO: changed_when
 
   - name: configure client nodemap admin property
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].mount.trusted|int }}"
+    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].lustre.admin|int }}"
     loop: "{{ groups['lustre_client'] }}"
+    # TODO: changed_when

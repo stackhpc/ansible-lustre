@@ -1,7 +1,6 @@
-mount:
-  name: proj12
-  squashed: false
+lustre:
   trusted: true
+  fileset: '/proj12'
 users:
   alex:
     guid: 1101

@@ -44,6 +44,7 @@ router_net2_to_net3
 storage_net1
 client_net1
 router_net1_to_net2
+admin_client
 
 [lnet_tcp2:children]
 client_net2

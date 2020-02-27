@@ -1,6 +1,5 @@
-mount:
-  name: proj3
-  squashed: false
+lustre:
+  fileset: '/proj3'
   trusted: true
 users:
   catrin:
