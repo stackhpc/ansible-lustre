@@ -1,0 +1,11 @@
+- name: Test stuff
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - script: 'tools/lnet.py export'
+      register: lnet_config
+
+    - debug:
+        msg: "{{ lnet_config.stdout_lines }}"
+    # TODO: save config as latest, diff it against known-good (if it exists)
