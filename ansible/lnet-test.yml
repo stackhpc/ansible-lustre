@@ -6,8 +6,7 @@
   tasks:
     - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       changed_when: False
-      with_items:
-        - "{{ groups['lustre_server'] }}"
+      loop: "{{ groups['lustre_server'] }}"
 
 - name: Check route from server(s) to clients/routers
   # NB: is this redundant given ping uses both out and back routes? Documents approach at least.
@@ -17,8 +16,7 @@
   tasks:
     - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       changed_when: False
-      with_items:
-        - "{{ groups['lustre_client'] }}"
+      loop: "{{ groups['lustre_client'] }}"
 
 - name: Check clients *cannot* access each other
   hosts: lustre_client
@@ -29,4 +27,4 @@
       register: result
       failed_when: 'result.rc == 0'
       changed_when: False
-      with_items: "{{ groups['lustre_client'] | difference([inventory_hostname]) }}" # avoids checking self-access
+      loop: "{{ groups['lustre_client'] | difference([inventory_hostname]) }}" # avoids checking self-access
