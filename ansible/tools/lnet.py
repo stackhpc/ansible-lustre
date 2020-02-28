@@ -71,8 +71,9 @@ def get_lnet_info():
     
     # filter:
     output = {'net':[], 'route':[]}
-    for route in data['route']:
-        output['route'].append(dict((k, v) for (k, v) in route.iteritems() if k in ROUTES_FIELDS))
+    if 'route' in data:
+        for route in data['route']:
+            output['route'].append(dict((k, v) for (k, v) in route.iteritems() if k in ROUTES_FIELDS))
     for net in data['net']:
         if net['net type'] != 'lo':
             outnet = {'net type':net['net type'],
