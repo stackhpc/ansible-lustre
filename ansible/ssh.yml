@@ -1,44 +1,50 @@
 ---
-# hosts: all
-- name: Wait for proxy
-  wait_for:
-    host: "{{ ssh_proxy }}"
-    port: 22
-    state: started
-    timeout: 360
-  delegate_to: "localhost"
+- name: Configure proxy's keys
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for proxy
+      wait_for:
+        host: "{{ ssh_proxy }}"
+        port: 22
+        state: started
+        timeout: 360
+      delegate_to: "localhost"
 
-- name: Scan for proxy's SSH keys
-  command: "ssh-keyscan -t rsa {{ ssh_proxy }}"
-  register: keyscan_results
-  changed_when: False
-  delegate_to: "localhost"
+    - name: Scan for proxy's SSH keys
+      command: "ssh-keyscan -t rsa {{ ssh_proxy }}"
+      register: keyscan_results
+      changed_when: False
+      delegate_to: "localhost"
 
-- name: Ensure proxy in SSH known hosts
-  blockinfile:
-    block: |
-      {% for line in keyscan_results.stdout_lines %}
-      {{ line }}
-      {% endfor %}
-    create: true
-    marker: "# {mark} MANAGED BLOCK FOR OpenHPC.proxy.{{ ssh_proxy }}"
-    path: "~/.ssh/known_hosts"
-  delegate_to: "localhost"
+    - name: Ensure proxy in SSH known hosts
+      blockinfile:
+        block: |
+          {% for line in keyscan_results.stdout_lines %}
+          {{ line }}
+          {% endfor %}
+        create: true
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.proxy.{{ ssh_proxy }}"
+        path: "~/.ssh/known_hosts"
+      delegate_to: "localhost"
 
-#all_hosts: "{{ groups['all'] }}"
-- name: Scan for server's SSH keys
-  command: "ssh {{ ansible_user }}@{{ ssh_proxy }} ssh-keyscan -t rsa {{ ansible_host }}"
-  register: keyscan_results
-  changed_when: False
-  delegate_to: "localhost"
+- name: Configure server's keys
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Scan for server's SSH keys
+      command: "ssh {{ ansible_user }}@{{ ssh_proxy }} ssh-keyscan -t rsa {{ ansible_host }}"
+      register: keyscan_results
+      changed_when: False
+      delegate_to: "localhost"
 
-- name: Ensure servers are in SSH known hosts
-  blockinfile:
-    block: |
-      {% for key in keyscan_results.stdout_lines %}
-      {{ key }}
-      {% endfor %}
-    create: true
-    marker: "# {mark} MANAGED BLOCK FOR OpenHPC.{{ inventory_hostname }}"
-    path: "~/.ssh/known_hosts"
-  delegate_to: "localhost"
+    - name: Ensure servers are in SSH known hosts
+      blockinfile:
+        block: |
+          {% for key in keyscan_results.stdout_lines %}
+          {{ key }}
+          {% endfor %}
+        create: true
+        marker: "# {mark} MANAGED BLOCK FOR OpenHPC.{{ inventory_hostname }}"
+        path: "~/.ssh/known_hosts"
+      delegate_to: "localhost"

@@ -1,0 +1,37 @@
+- name: Configure lustre server/MGS
+  hosts: lustre_server[0] # TODO: MGS group?
+  become: true
+  gather_facts: false
+  vars:
+    default_squash_gid: 99
+    default_squash_uid: 99
+  tasks:
+    - name: enable lustre server repo
+      yum_repository:
+        name: lustre-server
+        description: lustre-server
+        file: lustre-repo
+        baseurl: https://downloads.whamcloud.com/public/lustre/lustre-{{ lustre.release }}/el7/patchless-ldiskfs-server
+        gpgcheck: no
+    - name: enable lustre e2fs repo
+      yum_repository:
+        name: e2fsprogs-wc
+        description: e2fsprogs-wc
+        file: lustre-repo
+        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el7
+        gpgcheck: no
+    - name: Install Lustre Server
+      yum:
+        name: "lustre-{{ lustre.release }}"
+        state: present
+    - name: Put SELinux in permissive mode, logging actions that would be blocked.
+      selinux:
+        policy: targeted
+        state: permissive
+    - name: configure and enable lnet
+      import_tasks: lnet.yml
+      # TODO: lnet-test
+    - name: format and mount MDT/OST/MGS disks
+      import_tasks: format.yml
+    - name: configure lustre with tenant parameters
+      import_tasks: tenants.yml

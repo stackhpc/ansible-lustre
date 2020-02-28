@@ -1,75 +1,69 @@
-# NB need clients UNMOUNTED and nodemap DEACTIVATED before running this.
+# NB might need need clients UNMOUNTED and nodemap DEACTIVATED before running this if its making changes?
 ---
-- name: Format disks
-  hosts: lustre_server[0]
-  become: True
-  gather_facts: false
-  tasks:
+- name: Load lustre
+  command: modprobe lustre
+  changed_when: False
 
-    - name: Load lustre
-      command: modprobe lustre
-      changed_when: False
+- name: Ensure MGS has been formatted
+  command: /usr/sbin/mkfs.lustre --mgs {{ mgs }}
+  register: command_result
+  failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
+  changed_when: "command_result.rc == 0"
 
-    - name: Ensure MGS has been formatted
-      command: /usr/sbin/mkfs.lustre --mgs {{ mgs }}
-      register: command_result
-      failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
-      changed_when: "command_result.rc == 0"
+- name: Format MDTs
+  command: "/usr/sbin/mkfs.lustre --mdt --fsname={{ lustre.fs_name }} --index={{ item_index }} --mgsnode={{ lustre.mgs_addr }}@{{ lustre.mgs_lnet }} {{ item }}"
+  register: command_result
+  loop: "{{ mdts }}"
+  loop_control:
+    index_var: item_index
+  failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
+  changed_when: "command_result.rc == 0"
 
-    - name: Format MDTs
-      command: "/usr/sbin/mkfs.lustre --mdt --fsname={{ fs_name }} --index={{ item_index }} --mgsnode={{ mgsnode }}@{{ lnet_suffix }} {{ item }}"
-      register: command_result
-      loop: "{{ mdts }}"
-      loop_control:
-        index_var: item_index
-      failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
-      changed_when: "command_result.rc == 0"
+- name: Format OSTs
+  command: "/usr/sbin/mkfs.lustre --ost --fsname={{ lustre.fs_name }} --index={{ item_index }} --mgsnode={{ lustre.mgs_addr }}@{{ lustre.mgs_lnet }} {{ item }}"
+  register: command_result
+  loop: "{{ osts }}"
+  loop_control:
+    index_var: item_index
+  failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
+  changed_when: "command_result.rc == 0"
 
-    - name: Format OSTs
-      command: "/usr/sbin/mkfs.lustre --ost --fsname={{ fs_name }} --index={{ item_index }} --mgsnode={{ mgsnode }}@{{ lnet_suffix }} {{ item }}"
-      register: command_result
-      loop: "{{ osts }}"
-      loop_control:
-        index_var: item_index
-      failed_when: "command_result.rc != 0 and ('was previously formatted for lustre' not in command_result.stderr) and command_result.rc != 17"
-      changed_when: "command_result.rc == 0"
+- name: Create MGS mount dir
+  file:
+    path: /lustre/MGS
+    state: directory
+    recurse: yes
 
-    - name: Create MGS mount dir
-      file:
-        path: /lustre/MGS
-        state: directory
-        recurse: yes
+- name: mount MGSs
+  command: mount -t lustre {{ mgs }} /lustre/MGS
+  register: command_result
+  failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+  changed_when: "command_result.rc == 0"
 
-    - name: mount MGSs
-      command: mount -t lustre {{ mgs }} /lustre/MGS
-      register: command_result
-      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
-      changed_when: "command_result.rc == 0"
+- name: Create MDT mount dir
+  file:
+    path: /lustre/{{ lustre.fs_name }}/MDT{{ item }}
+    state: directory
+    recurse: yes
+  loop: "{{ mdts }}"
 
-    - name: Create MDT mount dir
-      file:
-        path: /lustre/{{ fs_name }}/MDT{{ item }}
-        state: directory
-        recurse: yes
-      loop: "{{ mdts }}"
+- name: mount MDTs
+  command: mount -t lustre {{ item }} /lustre/{{ lustre.fs_name }}/MDT{{ item }}
+  register: command_result
+  failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+  changed_when: "command_result.rc == 0"
+  loop: "{{ mdts }}"
 
-    - name: mount MDTs
-      command: mount -t lustre {{ item }} /lustre/{{ fs_name }}/MDT{{ item }}
-      register: command_result
-      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
-      changed_when: "command_result.rc == 0"
-      loop: "{{ mdts }}"
+- name: Create OST mount dir
+  file:
+    path: /lustre/{{ lustre.fs_name }}/OST{{ item }}
+    state: directory
+    recurse: yes
+  loop: "{{ osts }}"
 
-    - name: Create OST mount dir
-      file:
-        path: /lustre/{{ fs_name }}/OST{{ item }}
-        state: directory
-        recurse: yes
-      loop: "{{ osts }}"
-
-    - name: mount OSTs
-      command: mount -t lustre {{ item }} /lustre/{{ fs_name }}/OST{{ item }}
-      register: command_result
-      failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
-      changed_when: "command_result.rc == 0"
-      loop: "{{ osts }}"
+- name: mount OSTs
+  command: mount -t lustre {{ item }} /lustre/{{ lustre.fs_name }}/OST{{ item }}
+  register: command_result
+  failed_when: "command_result.rc != 0 and ('is already mounted' not in command_result.stderr)"
+  changed_when: "command_result.rc == 0"
+  loop: "{{ osts }}"
