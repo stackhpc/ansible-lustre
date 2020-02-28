@@ -18,13 +18,14 @@
       changed_when: False
       loop: "{{ groups['lustre_client'] }}"
 
-- name: Check clients *cannot* access each other
+- name: Check clients in different lnets *cannot* access each other
   hosts: lustre_client
   become: True
   gather_facts: false
   tasks:
     - command: "lnetctl ping {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}"
       register: result
+      when: "hostvars[item].lnet_eth0_net_type != lnet_eth0_net_type"
       failed_when: 'result.rc == 0'
       changed_when: False
-      loop: "{{ groups['lustre_client'] | difference([inventory_hostname]) }}" # avoids checking self-access
+      loop: "{{ groups['lustre_client']  | difference([inventory_hostname]) }}" # remove current host from list to check
