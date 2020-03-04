@@ -1,11 +1,61 @@
-- name: Test stuff
+- name: Verify lnet config
   hosts: all
-  become: true
   gather_facts: false
   tasks:
-    - script: 'tools/lnet.py export'
+    - name: export live lnet config
+      script: 'tools/lustre-tools/lnet.py export'
       register: lnet_config
+      changed_when: false
+      become: true
+      
+    - name: write live config to file
+      copy:
+        dest: "lustre-configs-live/{{ inventory_hostname }}-lnet.conf"
+        content: "{{ lnet_config.stdout }}"
+      delegate_to: localhost
+    
+    - name: check if known-good exists
+      stat:
+        path: "{{ playbook_dir }}/lustre-configs-good/{{ inventory_hostname }}-lnet.conf"
+      register: known_good_lnet
+      delegate_to: localhost
 
-    - debug:
-        msg: "{{ lnet_config.stdout_lines }}"
-    # TODO: save config as latest, diff it against known-good (if it exists)
+    - name: diff known-good to live config
+      command:
+        cmd: "diff lustre-configs-good/{{ inventory_hostname }}-lnet.conf lustre-configs-live/{{ inventory_hostname }}-lnet.conf"
+      delegate_to: localhost
+      when: known_good_lnet.stat.exists == true
+      register: diff_lnet
+      failed_when: "diff_lnet.stdout != '' or diff_lnet.stderr != ''"
+      changed_when: "diff_lnet.stderr != ''"
+      
+- name: Verify nodemap config
+  hosts: lustre-storage # should be MGS group
+  gather_facts: false
+  tasks:
+    - name: export live nodemap config
+      script: 'tools/lustre-tools/nodemap.py export'
+      register: nodenet_config
+      changed_when: false
+      become: true
+
+    - name: write live config to file
+      copy:
+        dest: "lustre-configs-live/{{ inventory_hostname }}-nodenet.conf"
+        content: "{{ nodenet_config.stdout }}"
+      delegate_to: localhost
+
+    - name: check if known-good exists
+      stat:
+        path: "{{ playbook_dir }}/lustre-configs-good/{{ inventory_hostname }}-nodenet.conf"
+      register: known_good_nodenet
+      delegate_to: localhost
+
+    - name: diff known-good to live config
+      command:
+        cmd: "diff lustre-configs-good/{{ inventory_hostname }}-nodenet.conf lustre-configs-live/{{ inventory_hostname }}-nodenet.conf"
+      delegate_to: localhost
+      register: diff_nodemap
+      when: known_good_nodenet.stat.exists == true
+      failed_when: "diff_nodemap.stdout != '' or diff_nodemap.stderr != ''"
+      changed_when: "diff_nodemap.stderr != ''"
