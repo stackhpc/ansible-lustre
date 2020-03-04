@@ -61,6 +61,7 @@
     dest: "/var/tmp/"
     flat: yes
   loop: "{{ groups['lustre_client'] }}"
+  when: "lustre.ssk_flavor != 'null'"
 
 - name: ensure client config directory exists
   file:
@@ -109,6 +110,15 @@
   failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
   changed_when: nodemap_add.rc == 0
   # TODO: remove any existing nodemaps which aren't client ones
+
+- name: list all nodemaps
+  shell: "lctl nodemap_info"
+  register: nodemaps
+
+- name: remove any non-client nodemaps
+  shell: "lctl nodemap_del {{ item | replace('nodemap.', '') }}"
+  loop: "{{ nodemaps.stdout_lines }}"
+  when: "item | replace('nodemap.', '') not in groups['lustre_client'] | map('replace', '-', '_') | list | union(['default'])"
 
 - name: add clients to nodemaps
   command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID

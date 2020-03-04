@@ -135,4 +135,4 @@ terraform.tfstate*
 # project-specific
 ansible/lnet-configs*
 terraform/examples/slurm/ansible_inventory
-
+lustre-configs-*/
