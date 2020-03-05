@@ -5,7 +5,7 @@ projects:
   proj3:
     base: 3100
 lustre: # can all be overriden on a per-client basis
-  release: "2.12.2"
+  release: "2.12.4"
   fs_name: test_fs1
   key_duration: 525600 # duration (s) of lustre key validity
   mgs_addr: "{{ hostvars[groups['lustre_server'][0]]['ansible_host'] }}"

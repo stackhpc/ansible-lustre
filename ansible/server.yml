@@ -18,7 +18,7 @@
         name: e2fsprogs-wc
         description: e2fsprogs-wc
         file: lustre-repo
-        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/latest/el7
+        baseurl: https://downloads.whamcloud.com/public/e2fsprogs/1.45.2.wc1/el7/
         gpgcheck: no
     - name: Install Lustre Server
       yum:
