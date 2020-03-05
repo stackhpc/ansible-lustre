@@ -1,9 +1,11 @@
 lustre:
   fileset: '/proj3'
-  trusted: true
+  squash_group: proj3
 users:
+  datamanager:
+    guid: 2999
   catrin:
-    guid: 3101
+    guid: 1101
     groups: [proj3]
   charlie:
     guid: 3102

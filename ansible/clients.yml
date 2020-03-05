@@ -5,5 +5,5 @@
   vars:
     mount_state: mounted # use mounted or absent
   tasks:
-    - import_tasks: configure-client.yml
+    - import_tasks: client-install.yml
     
