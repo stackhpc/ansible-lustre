@@ -5,6 +5,7 @@
     mount_state: mounted
   tasks:
     - import_tasks: client-install.yml
+    - import_tasks: project-users.yml
     - name: create project directories
       file:
         path: "/mnt/lustre/{{ item.key }}"
