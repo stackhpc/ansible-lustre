@@ -114,6 +114,7 @@
 - name: list all nodemaps
   shell: "lctl nodemap_info"
   register: nodemaps
+  changed_when: false
 
 - name: remove any non-client nodemaps
   shell: "lctl nodemap_del {{ item | replace('nodemap.', '') }}"
