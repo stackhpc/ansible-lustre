@@ -54,15 +54,6 @@
   when: "lustre.ssk_flavor != 'null'"
   # TODO: changed_when
 
-- name: fetch client keys from server to control host
-  # can't use synchronise from server-> client or vice versa as neither way ssh works
-  fetch:
-    src: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
-    dest: "/var/tmp/"
-    flat: yes
-  loop: "{{ groups['lustre_client'] }}"
-  when: "lustre.ssk_flavor != 'null'"
-
 - name: ensure client config directory exists
   file:
     path: /etc/lustre
@@ -71,16 +62,12 @@
   loop: "{{ groups['lustre_client'] }}"
   # NB: we do this even if we're not using ssk as then clients can always mount with skpath=/etc/lustre, it just won't load any keys if it's empty.
 
-- name: write client keys to clients
-  copy:
-    src: "/var/tmp/{{ item | replace('-', '_') }}.client.key"
-    dest: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
-    mode: u=r,go=
-  delegate_to: "{{ item }}"
-  loop: "{{ groups['lustre_client'] }}"
-  # TODO: consider using slurp to read the keys to control host memory, then using shell: "base64 -d < {{ content }} > /etc/lustre/<keyfile>"
-  #       similar to suggestion here : https://stackoverflow.com/a/31039053/916373
-  # NB: you can't use copy with content parameter to write it, see https://github.com/ansible/ansible/issues/20150
+# TODO: distribute client keys to clients
+#  when: "lustre.ssk_flavor != 'null'"
+# Consider using slurp to read the keys to control host memory, then using shell: "base64 -d < {{ content }} > /etc/lustre/<keyfile>"
+# similar to suggestion here : https://stackoverflow.com/a/31039053/916373
+# NB: you can't use copy with content parameter to write it, see https://github.com/ansible/ansible/issues/20150
+# NB: you can't use synchronise from server->client (or vice versa) due to ssh setup (keys are only on control host)
 
 - name: configure key checking daemon
   lineinfile:
@@ -160,4 +147,9 @@
   command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].lustre.admin|int }}"
   loop: "{{ groups['lustre_client'] }}"
   # TODO: changed_when
+
+# - name: configure client nodemap mappings
+#   command: "lctl nodemap_add_idmap --name {{ item.0 | replace('-', '_') }} --idtype {{ item.1.type}} --idmap {{client}}:{{server}}"
+#   loop: "{{ groups['lustre_client'] | product(hostvars[item].lustre.idmap) | list}}"
+
   
