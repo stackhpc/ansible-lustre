@@ -1,0 +1,8 @@
+- name: get lustre exporter
+  command: go get github.com/HewlettPackard/lustre_exporter
+
+- name: build exporter
+  command: "cd $GOPATH/src/github.com/HewlettPackard/lustre_exporter && make"
+
+- name: start exporter
+  

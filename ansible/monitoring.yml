@@ -1,0 +1,43 @@
+- name: Deploy node_exporter
+  hosts: all
+  roles:
+    - cloudalchemy.node-exporter
+  tags:
+    - node_exporter
+
+- name: Deploy lustre exporter
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    lustre_exporter_flags:
+      lustre_server: "--collector.client=disabled"
+      lustre_client: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+      lustre_router: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+  tasks:
+    - copy:
+        src: 'tools/lustre_exporter'
+        dest: '/usr/local/bin'
+        mode: preserve
+
+    #- command: '/usr/local/bin/lustre_exporter/lustre_exporter {{ lustre_exporter_flags[item] }}'
+    #  loop: "{{ group_names }}"
+    #  when: "item in lustre_exporter_flags"
+
+- name: Setup core monitoring software
+  hosts: lustre_server[0]
+  roles:
+    - cloudalchemy.blackbox-exporter
+    - cloudalchemy.snmp-exporter
+    - cloudalchemy.prometheus
+    - cloudalchemy.alertmanager
+  tags:
+    - prometheus
+
+- name: Deploy grafana
+  hosts: lustre_server[0]
+  roles:
+    - cloudalchemy.grafana
+  tags:
+    - grafana
+
