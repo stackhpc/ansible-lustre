@@ -1,0 +1,8 @@
+- name: install kernel
+  yum:
+    name: http://mirror.centos.org/centos/7/updates/x86_64/Packages/kernel-3.10.0-1062.9.1.el7.x86_64.rpm
+    state: present
+  register: update_kernel
+- name: reboot if kernel updated
+  reboot:
+  when: update_kernel is changed

@@ -1,9 +1,17 @@
 ---
-- import_playbook: ssh.yml
-- import_playbook: entropy.yml
+- import_playbook: common.yml
 - import_playbook: server.yml
 - import_playbook: routers.yml
-- import_playbook: projects.yml # needs server so lustre fs exists. Doesn't need routers as admin_client is in storage network
-- import_playbook: clients.yml # needs projects first
+- import_playbook: admin.yml
+#- import_playbook: projects.yml add tenants in here?? # needs server so lustre fs exists. Doesn't need routers as admin_client is in storage network
+- import_playbook: clients.yml # needs projects first if mounting
 - import_playbook: lnet-test.yml
+- import_playbook: verify.yml
 #- import_playbook: users.yml
+#- import_playbook: monitoring.yml
+
+# The structure of the above is partly driven by the idea that client configuration might be an entirely separate repo at some point.
+# If that wasn't a requirement, it would be considerably faster to do:
+# - kernel update on all hosts
+# - package install on all hosts (client and router are the same)
+# then group-specific configuration

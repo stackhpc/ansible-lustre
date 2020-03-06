@@ -1,0 +1,6 @@
+- import_tasks: ssh.yml
+  become: false
+- import_tasks: entropy.yml
+  become: true
+- import_tasks: kernel.yml
+  become: true

@@ -1,0 +1,16 @@
+- name: Setup admin client
+  hosts: admin_client
+  gather_facts: false
+  roles:
+    - role: client
+      become: true
+      vars:
+        mount_state: absent #mounted
+  #  - import_tasks: project-users.yml
+  #  - name: create project directories
+  #    file:
+  #      path: "/mnt/lustre/{{ item.key }}"
+  #      owner: "{{ item.key }}"
+  #      group: "{{ item.key }}"
+  #      state: directory
+  #    loop: "{{ projects | dict2items }}"

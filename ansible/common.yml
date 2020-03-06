@@ -1,0 +1,6 @@
+- name: Initialise hosts
+  # break this out as a separate play as it takes a while, so this way can do it in parallel on all hosts
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: common

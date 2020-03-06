@@ -1,6 +1,6 @@
 ---
-- name: Create users
-  hosts: lustre_server,lustre_client
+- name: Create test users
+  hosts: lustre_client
   become: true
   gather_facts: false
   tasks:
@@ -9,6 +9,7 @@
       group:
         name: "{{ item }}"
         gid: "{{ users[item].guid }}"
+        state: present
       loop: "{{ users.keys() }}"
     
     - name: create users
@@ -17,4 +18,6 @@
         uid: "{{ users[item].guid }}"
         group: "{{ item }}"
         groups: "{{ users[item].groups }}"
+        state: present
+        remove: "yes"
       loop: "{{ users.keys() }}"
