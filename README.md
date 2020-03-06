@@ -69,7 +69,7 @@ Client 1:
 - Root is squashed to the "nobody" user, uid/gid=99.
 
 Client 2:
-- Represnets a client with access to the low-latency network but no shared LDAP.
+- Represents a client with access to the low-latency network but no shared LDAP.
 - Also mounts the `proj12` subdirectory.
 - Users cannot see canonical filesystem uid/gids.
 - Root is mapped to the project owner user.
@@ -156,15 +156,23 @@ One nodemap is generated per client. Default values are provided by the `lustre`
 
 The key/value pairs in this mapping function essentially as described in the Lustre [nodemap documentation](http://doc.lustre.org/lustre_manual.xhtml#lustrenodemap) to provide maximum flexibility. In brief:
 - `trusted` determines whether client users can see the filesystem's canonical identifiers. Note these identifies are uid/gid - what user/group names these resolve (if at all) to depends on the users/groups present on the server.
-- `admin` controls whether root is squashed. The user/group it is squashed to is defined by the `squash_user` and `squash_group` parameters.
-- `squash_user` and `squash_group` define which (server) user/group unmapped client users/groups are squashed to. They are effectively the lustre nodeset parameters `squash_uid` and `squash_gid` except that as a convenience they take a name rather than id<sup id="foot1">[1](#f1)</sup>. Note that although the lustre documentation states squashing is disabled by default, in fact (under 2.12 and 2.14 at least) the squashed uid and gid default to 99 (the `nobody` user). Therefore if squashing is not required the `trusted` property must be set.
-- `fileset` if set, restricts the client to mounting only this subdirectory of the Lustre filesystem<sup id="foot2">[2](#f2)</sup>.
+- `admin` controls whether root is squashed. The user/group it is squashed to is defined by the `squash_uid` and `squash_gid` parameters.
+- `squash_uid` and `squash_gid` define which user/group unmapped client users/groups are squashed to on the server. Note that although the lustre documentation states squashing is disabled by default, in fact (under 2.12 and 2.14 at least) the squashed uid and gid default to 99 (the `nobody` user). Therefore if squashing is not required the `trusted` property must be set.
+- `fileset` if set, restricts the client to mounting only this subdirectory of the Lustre filesystem<sup id="foot1">[1](#f1)</sup>.
 - `idmaps` define specific users/groups to map, and contain a list where each item is a 3-list of:
-    - `type`, user or group
-    - name on client to map to ...
-    - ... name on server
+    - mapping type: 'uid', 'gid' or 'both'
+    - client uid/gid to map to ...
+    - ... uid/gid on server
 
 The nodemap property `deny_unknown` is not currently supported here as it only appears useful if uid/gid mappings were defined for all users, which seems difficult to maintain.
+
+## Users
+While the lustre documentation [states that](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) uid and gids should be the same on all clients this is not necessarily the case where clients are mounting isolated directories. Conversely which nids/gids exist where must be carefully considered in parallel with the mappings provided by the nodemaps to make sure that nids/gids attached to files in project directories make sense to clients.
+
+Therefore:
+- The admin client creates the project owner user/group defined in the `projects` group_var so that it can create project directories with the right owners/groups.
+- All project clients also create these users/groups so that their view of project directories is correct.
+- The example project users are added to the appropriate project groups.
 
 # Limitations
 Once the cluster is running, changing Lustre configuration is tricky and may require unmounting/remounting clients, or waiting for changes to propagate. Consult the lustre documentation.
@@ -208,7 +216,6 @@ Multi-hop paths require routes to be defined along the way: e.g. if node "A" in 
 
 
 ---
-<b id="f1">1.</b> Note that the specified user/groups do not need to exist on the server when the nodemaps are defined, as the code looks these up in the `project` variable rather than querying the server itself. [↩](#foot1)
 
-<b id="f2">2.</b> The lustre documentation for the [Fileset Feature](http://doc.lustre.org/lustre_manual.xhtml#SystemConfigurationUtilities.fileset) is confusing/incorrect as it appears to be describing **submounts** which involve the client specifying a path in the filesystem, and are hence voluntary, with **filesets** where the client only specifies the filesystem to mount and the server only exports
-the subdirectory defined by the appropriate fileset. Submount functionality is not exposed by this code. [↩](#foot2)
+<b id="f1">1.</b> The lustre documentation for the [Fileset Feature](http://doc.lustre.org/lustre_manual.xhtml#SystemConfigurationUtilities.fileset) is confusing/incorrect as it appears to be describing **submounts** which involve the client specifying a path in the filesystem, and are hence voluntary, with **filesets** where the client only specifies the filesystem to mount and the server only exports
+the subdirectory defined by the appropriate fileset. Submount functionality is not exposed by this code. [↩](#foot1)
