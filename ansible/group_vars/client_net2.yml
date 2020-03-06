@@ -1,7 +1,11 @@
 lustre:
-  squash_group: proj12
-  squash_user: proj12
+  trusted: false
   fileset: '/proj12'
+  idmap:
+    - [both, "{{ users.root.guid }}", "{{ projects.proj12.owner }}"]
+  squash_gid: "{{ projects.proj12.member }}"
+  squash_uid: "{{ projects.proj12.member }}"
+
 users: # NB neither of these exist on the server
   becky:
     guid: 1101 # NB deliberately clashes with a client1 user

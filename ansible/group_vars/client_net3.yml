@@ -1,9 +1,15 @@
 lustre:
+  trusted: false
   fileset: '/proj3'
-  squash_group: proj3
+  idmap:
+    - [both, "{{ users.root.guid }}", "{{ users.nobody.guid }}"]
+    - [both, "{{ users.datamanager.guid }}", "{{ projects.proj3.owner }}" ]
+  squash_gid: "{{ projects.proj3.member }}"
+  squash_uid: "{{ projects.proj3.member }}"
 users:
   datamanager:
     guid: 2999
+    groups: [proj3]
   catrin:
     guid: 1101
     groups: [proj3]

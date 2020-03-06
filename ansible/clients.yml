@@ -6,5 +6,5 @@
     - role: client
       become: true
       vars:
-        mount_state: absent #mounted
+        mount_state: mounted # absent or mounted
   

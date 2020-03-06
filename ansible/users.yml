@@ -1,6 +1,6 @@
 ---
 - name: Create test users
-  hosts: lustre_client
+  hosts: lustre_client:!admin_client
   become: true
   gather_facts: false
   tasks:

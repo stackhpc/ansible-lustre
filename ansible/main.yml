@@ -2,12 +2,12 @@
 - import_playbook: common.yml
 - import_playbook: server.yml
 - import_playbook: routers.yml
-- import_playbook: admin.yml
-#- import_playbook: projects.yml add tenants in here?? # needs server so lustre fs exists. Doesn't need routers as admin_client is in storage network
-- import_playbook: clients.yml # needs projects first if mounting
+- import_playbook: projects.yml # needs server so lustre fs exists.
+- import_playbook: admin.yml # needs server (so lustre fs exists) and projects (so admin nodemap is defined)
+- import_playbook: clients.yml
 - import_playbook: lnet-test.yml
 - import_playbook: verify.yml
-#- import_playbook: users.yml
+- import_playbook: users.yml
 #- import_playbook: monitoring.yml
 
 # The structure of the above is partly driven by the idea that client configuration might be an entirely separate repo at some point.

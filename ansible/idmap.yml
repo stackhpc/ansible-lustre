@@ -1,0 +1,7 @@
+- command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype uid --idmap {{ item[1] }}:{{ item[2] }}"
+  loop: "{{ hostvars[loop_host].lustre.idmap }}"
+  when: "item[0] in ['both', 'uid']"
+
+- command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype gid --idmap {{ item[1] }}:{{ item[2] }}"
+  loop: "{{ hostvars[loop_host].lustre.idmap }}"
+  when: "item[0] in ['both', 'gid']"
