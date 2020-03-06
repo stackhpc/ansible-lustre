@@ -197,6 +197,7 @@ although both of these cases should be caught by the automatic diff of Lustre co
   - A bug in how Lustre handles `sudo` for ssk.
   - Reverse DNS lookups (required for ssk) not working in the VSS environement as configured here.
   - Removed key transfer code broken by refactor
+  
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
 
 # Lustre networks
