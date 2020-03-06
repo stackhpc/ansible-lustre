@@ -29,23 +29,85 @@ The nodes on the networks are then:
 - `lustre-client[1-3]`: Lustre clients with different access levels to the filesystem (discussed below)
 - `lustre-lnet[2-3]`: Lnet routers to provide connectivity between clients and server across the different networks.
 
-The `test_fs` fileystem contains two "project directories":
-    - `proj12`, which client 1 and 2 both have access to (with different permissions)
-    - `proj3`, which only client 3 has access to
-
-Various Lustre features are used to control how clients can access the project directories:
+Various Lustre features are used to control how clients can access the filesystem:
 - lnet routes: These allow lustre traffic to cross network types, but also define define and hence control connectivity between clients and server.
 - filesets: These restrict which subdirectories of the lustre filesystem clients can mount.
 - nodemaps: These can be used to alter user's effective permissions, such as squashing root users to non-priviledged users.            
 - shared keys: These can be used to prevent mounting of the filesystem unless client and server have appropriate keys,
                and/or to encrypt data in transit. Note this feature is not demonstrated here - see [Known Issues](#known-issues).
 
-In addition to help prevent accidental configuration changes, tools are provided to export lustre configuration to a file with automatic diffing against
-a previous known-good configuation if defined.
+In addition this repo provides two extra tools to help prevent misconfiguration:
+- `lnet-test.yml` automatically checks connectivity between clients and server, and that clients in different networks cannot acccess each other.
+- `verify.yml` exports lustre configuration to files on the control host, then automatically diffs them against a previous known-good configuation (if available).
 
-# Clients and Users
+# Projects, Users and Permissions
 
-TODO:
+For demonstration purposes, the `test_fs` lustre fileystem contains two "project directories":
+- `proj12` mounted by `client1` and `client2`
+- `proj3` mounted only by `client3`
+
+The Lustre configurations applied to the clients represent different access scenarios:
+- `client1` is on the low-latency network, shares LDAP with the server and has full access to the filesystem (i.e. as defined by Linux permissions) except that the client's root user is not priviledged.
+- `client2` has access to the same project, but does not share LDAP and has restricted access with the client's root user acting as the project owner.
+- `client3` is in an isolated project, does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
+
+In addition, some example "project users" are set up to permit testing the above permission control:
+    - `client1`: `andy` and `alex`
+    - `client2`: `becky` and `ben`
+    - `client3`: `catrin` and `charlie`
+
+For information on how to control this, see [Nodemaps](nodemaps) below.
+
+proj12:
+    owner: `proj12`
+    client1:
+        - trusted = True
+        - admin = False
+
+    project member: `proj12member`
+
+
+
+     - present on `admin`, `client1`, `client2` nodes as uid/gid 1100
+    project member: `proj12member` - presn
+        - present on: 
+    project member: `proj12-member`
+
+
+user    | role          | server  | admin | client1 | client2 | client3
+proj12  | project owner |         | 1100  | 1100    | 1100
+proj3   | project owner |         | 3100  | 3100    | 3100
+root    | root          |         | 
+
+        |       | alex (1101) |             |
+        |       | andy (1102) |             |
+        |       |             |             |
+
+Each of these is owned by a "project owner" of the same name, with a group
+of the same name. Each project also has a "project member" user named "<project>-member" with a group of the same name.
+
+For demonstration purposes, the three clients are set up as follows:
+
+Client 1:
+- Represents a "trusted" client on the low-latency network using the same LDAP as the server.
+- Mounts the `proj12` subdirectory.
+- Has the Trusted flag set so users can see canonical filesystem uid/gids.
+- Does not have the Admin flag set, so root is squashed to the "nobody" user, uid/gid=99.
+
+Client 2:
+- Represnets a client with access to the low-latency network but no shared LDAP.
+- Also mounts the `proj12` subdirectory.
+- Does not have the Trusted flag set.
+- Does not have the Admin flag set, but the root user is specifically mapped to the project owner.
+- All other users are mapped to the project member.
+
+Client 3:
+- Represents a client in an isolated project, with no shared LDAP.
+- Mounts the `proj3` subdirectory
+- Does not have the Trusted flag set.
+- Does not have the Admin flag set, so root is squashed to the "nobody" user, uid/gid=99.
+- A non-root user "datamanager" is mapped to the project owner.
+- All other users are mapped to the project member.
 
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
@@ -76,6 +138,7 @@ Now use Terraform to create the infrastructure:
     . .venv/bin/activate
     pip install -U pip
     pip install -U -r requirements.txt
+    ansible-galaxy install -r requirements.yml
 
 ## Install and configure Lustre and projects:
 In the `ansible/` directory With the virtualenv activated as above, run:
@@ -87,6 +150,16 @@ Note that the inventory file is a symlink to the output of terraform.
 Once this has completed, there will be Lustre configuration in `ansible/lustre-configs-live/`. To provide protection against misconfiguration, review these
 for correctness and then copy (and potentially commit them) to `ansible/lustre-configs-good/`. Ansible will then compare live config against this each time it is run
 and warn if there are differerences.
+
+## Logging into nodes
+
+To ssh into nodes use:
+
+    ssh <ansible_ssh_common_args> centos@<private_ip>
+
+where both `<ansible_ssh_common_args>` and the relevant `<private_ip>` are defined `ansible/inventory`.
+
+For routers, note the relevant IP is the one for the lower-numbered network it is connected to.
 
 # Configuration
 This section explains how the Lustre configuration is defined by this code.
@@ -104,9 +177,20 @@ These groups are then used to generate a configuration file for each node using 
 
 Additional general information about how lnet routes work is provided TODO: below.
 
+## Nodemaps
+This Ansible generates one nodemap per client. Default values are provided by the `lustre` mapping in `ansible/group_vars/all` and overriden for specific client groups (e.g. in `ansible/group_vars/client_net1.yml`) as required.
 
-## Nodemap parameters
-Ansible generates one nodemap per client. Default values are provided by the `lustre` mapping in `ansible/group_vars/all` and overriden for specific client groups (e.g. `ansible/group_vars/client_net1.yml`) as required. The key/value pairs in this mapping function essentially as described in the Lustre nodemap [property documentation](http://doc.lustre.org/lustre_manual.xhtml#alteringproperties), with the exception that as a convenience user/group squashing is defined in terms of the user/group name to squash to, rather than the id (the id is then looked up from the `projects` mapping in the group_vars).
+The key/value pairs in this mapping function essentially as described in the Lustre [nodemap documentation](http://doc.lustre.org/lustre_manual.xhtml#lustrenodemap) to provide maximum flexibility. In brief:
+- `trusted` determines whether client users can see the filesystem's canonical identifiers. Note these identifies are uid/gid - what user/group names these resolve (if at all) to depends on the users/groups present on the server.
+- `admin` controls whether root is squashed. The user/group it is squashed to is defined by the `squash_user` and `squash_group` parameters.
+- `squash_user` and `squash_group` define which (server) user/group unmapped client users/groups are squashed to. They are effectively the lustre nodeset parameters `squash_uid` and `squash_gid` except that as a convenience they take a name rather than id<sup id="foot1">[1](#f1)</sup>. Note that although the lustre documentation states squashing is disabled by default, in fact (under 2.12 and 2.14 at least) the squashed uid and gid default to 99 (the `nobody` user). Therefore if squashing is not required the `trusted` property must be set.
+- `fileset` if set, restricts the client to mounting only this subdirectory of the Lustre filesystem.<sup id="foot2">[2](#f2)</sup>.
+- `idmaps` define specific users/groups to map, and contain a list where each item is a 3-list of:
+    - `type`, user or group
+    - name on client to map to ...
+    - ... name on server
+
+The nodemap property `deny_unknown` is not currently supported here as it only appears useful if uid/gid mappings were defined for all users, which seems difficult to maintain.
 
 # Limitations
 Once the cluster is running, changing Lustre configuration is slightly tricky and may require unmounting/remounting clients, or waiting for changes to propagate.
@@ -119,18 +203,18 @@ However it does not enforce that:
 - No additional routes exist
 although both of these cases should be caught by the automatic diff of Lustre configuration against a known-good config, if defined.
 
-# Known Issues and Limitations
+# Known Issues
 
 - Terraform may need to be run twice due to errors like `"Network <id> requires a subnet in order to boot instances on."`
-- If you see errors for any of the below Ansible actions just rerun the Ansible command:
-  - Entropy
+- If you see any of the below errors from Ansible just rerun the Ansible command:
+  - Timeout waiting for priviledge escalation prompt
   - Installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
   - `lnet-test.yml` (possibly server not ready?)
 - Shared-key security (ssk) does not currently work due to
   - A bug in how Lustre handles `sudo` for ssk.
   - Reverse DNS lookups (required for ssk) not working in the VSS environement as configured here.
+  - Removed key transfer code broken by refactor
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
-
 
 # Lustre networks
 There are essentially 3 aspects to be configured:
@@ -146,3 +230,10 @@ Multi-hop paths require routes to be defined along the way: e.g. if node "A" in 
 - node "A" needs a route to 4 to be defined using the gateway router from 1-2.
 - The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
 - The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
+
+
+---
+<b id="f1">1.</b> Note that the specified user/groups do not need to exist on the server when the nodemaps are defined, as the code looks these up in the `project` variable rather than querying the server itself. [↩](#foot1)
+
+<b id="f2">2.</b> The lustre documentation for the [Fileset Feature](http://doc.lustre.org/lustre_manual.xhtml#SystemConfigurationUtilities.fileset) is confusing/incorrect as it appears to be describing **submounts** which involve the client specifying a path in the filesystem, and are hence voluntary, with **filesets** where the client only specifies the filesystem to mount and the server only exports
+the subdirectory defined by the appropriate fileset. Submount functionality is not exposed by this code. [↩](#foot2)
