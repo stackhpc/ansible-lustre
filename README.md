@@ -158,13 +158,12 @@ The key/value pairs in this mapping function essentially as described in the Lus
 - `trusted` determines whether client users can see the filesystem's canonical identifiers. Note these identifies are uid/gid - what user/group names these resolve (if at all) to depends on the users/groups present on the server.
 - `admin` controls whether root is squashed. The user/group it is squashed to is defined by the `squash_uid` and `squash_gid` parameters.
 - `squash_uid` and `squash_gid` define which user/group unmapped client users/groups are squashed to on the server. Note that although the lustre documentation states squashing is disabled by default, in fact (under 2.12 and 2.14 at least) the squashed uid and gid default to 99 (the `nobody` user). Therefore if squashing is not required the `trusted` property must be set.
+- `deny_unknown` if set, prevents access to all users not defined in the nodemap.
 - `fileset` if set, restricts the client to mounting only this subdirectory of the Lustre filesystem<sup id="foot1">[1](#f1)</sup>.
 - `idmaps` define specific users/groups to map, and contain a list where each item is a 3-list of:
     - mapping type: 'uid', 'gid' or 'both'
     - client uid/gid to map to ...
     - ... uid/gid on server
-
-The nodemap property `deny_unknown` is not currently supported here as it only appears useful if uid/gid mappings were defined for all users, which seems difficult to maintain.
 
 ## Users
 While the lustre documentation [states that](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) uid and gids should be the same on all clients this is not necessarily the case where clients are mounting isolated directories. Conversely which nids/gids exist where must be carefully considered in parallel with the mappings provided by the nodemaps to make sure that nids/gids attached to files in project directories make sense to clients.

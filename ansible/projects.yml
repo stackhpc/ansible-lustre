@@ -151,6 +151,11 @@
     command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].lustre.admin|int }}"
     loop: "{{ groups['lustre_client'] }}"
     # TODO: changed_when
+  
+  - name: configure client nodemap deny_unknown property
+    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].lustre.deny_unknown|int }}"
+    loop: "{{ groups['lustre_client'] }}"
+  
 
   - name: configure client nodemap mappings
     include_tasks: idmap.yml
