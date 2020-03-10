@@ -1,5 +1,6 @@
 - name: Deploy node_exporter
   hosts: all
+  gather_facts: true # else it breaks
   roles:
     - cloudalchemy.node-exporter
   tags:
@@ -10,19 +11,34 @@
   become: true
   gather_facts: false
   vars:
-    lustre_exporter_flags:
-      lustre_server: "--collector.client=disabled"
-      lustre_client: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
-      lustre_router: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+    lustre_exporter_binary: "/usr/local/bin/lustre_exporter/lustre_exporter"
+    lustre_exporter_cmd:
+      lustre_server: "{{ lustre_exporter_binary }} --collector.client=disabled"
+      lustre_client: "{{ lustre_exporter_binary }} --collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+      lustre_router: "{{ lustre_exporter_binary }} --collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
   tasks:
-    - copy:
+    - name: copy lustre exporter binary
+      copy:
         src: 'tools/lustre_exporter'
         dest: '/usr/local/bin'
         mode: preserve
 
-    #- command: '/usr/local/bin/lustre_exporter/lustre_exporter {{ lustre_exporter_flags[item] }}'
-    #  loop: "{{ group_names }}"
-    #  when: "item in lustre_exporter_flags"
+    - name: check for running lustre exporter
+      command: "ps -o cmd --no-headers -C lustre_exporter"
+      register: lustre_exporter_running
+      failed_when: false
+      changed_when: false
+    
+    - name: start lustre exporter
+      # TODO: need to make this start on boot
+      command: '{{ lustre_exporter_cmd[item] }}'
+      loop: "{{ lustre_exporter_cmd.keys() | intersect(group_names) }}"
+      when: "lustre_exporter_running.stdout != lustre_exporter_cmd[item]"
+      # Notes:
+      # 1. Just rerunning the command if its already running fails with  `bind: address already in use`.
+      # 2. This approach shows a skip rather than an ok if command was already running, but it will
+      #    at least result in an error as per 1/ if it's already running but with the wrong parameters
+      #    (which this ansible can't fix).
 
 - name: Setup core monitoring software
   hosts: lustre_server[0]
@@ -30,7 +46,7 @@
     - cloudalchemy.blackbox-exporter
     - cloudalchemy.snmp-exporter
     - cloudalchemy.prometheus
-    - cloudalchemy.alertmanager
+    #- cloudalchemy.alertmanager
   tags:
     - prometheus
 

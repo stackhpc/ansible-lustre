@@ -25,7 +25,8 @@ All networks are virtual but are intended to represent:
 As well as being a virtual network, each network above is also a Lustre network (lnet).
 
 The nodes on the networks are then:
-- `lustre-storage`: The Lustre server, acting as MGS, MDT and OST. This exports a single fileystem `test_fs1`.
+- `lustre-storage`: The Lustre server, acting as MGS, MDT and OST. This exports a single fileystem `test_fs1`. It is given a public
+                    IP and serves as a proxy for ssh access to nodes.
 - `lustre-admin`: A Lustre client used to admininster the fileystem - it has a privileged view of the real owners/permissions.
 - `lustre-client[1-3]`: Lustre clients with different access levels to the filesystem (discussed below)
 - `lustre-lnet[2-3]`: Lnet routers to provide connectivity between clients and server across the different networks.
@@ -94,13 +95,21 @@ Now use Terraform to create the infrastructure:
 ## Install and configure Lustre and projects:
 In the `ansible/` directory With the virtualenv activated as above, run:
 
-    ansible-playbook main.yml -i inventory
+    ansible-playbook -i inventory main.yml
 
 Note that the inventory file is a symlink to the output of terraform.
 
 Once this has completed, there will be Lustre configuration in `ansible/lustre-configs-live/`. To provide protection against misconfiguration, review these
 for correctness and then copy (and potentially commit them) to `ansible/lustre-configs-good/`. Ansible will then compare live config against this each time it is run
 and warn if there are differerences.
+
+Optionally, monitoring may be set up by running:
+
+    ansible-playbook -i inventory monitoring.yml -e "grafana_password=<PASSWORD>"
+
+where `<PASSWORD>` should be replaced with a password of your choice.
+
+The `lustre-storage` node then hosts Prometheus at port 9090 and Graphana (username="admin", password as chosen) at port 3000.
 
 ## Logging into nodes
 

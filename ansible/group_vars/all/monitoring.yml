@@ -1,0 +1,89 @@
+prometheus_web_external_url: "http://{{ ansible_host }}:9090"
+prometheus_storage_retention: "2d"
+
+prometheus_alertmanager_config:
+  - scheme: http
+    static_configs:
+      - targets:
+        - "{{ ansible_host }}:9093"
+
+prometheus_targets:
+  node:
+    - targets:
+        "{{ groups['all'] | map('extract', hostvars, ['ansible_host']) | map('regex_replace', '$', ':9100') | list }}"
+      labels:
+        env: demo
+  alertmanager:
+    - targets:
+      - "{{ ansible_host }}:9093"
+      labels:
+        env: demo
+  grafana:
+    - targets:
+      - "{{ ansible_host }}:3000"
+      labels:
+        env: demo
+
+prometheus_scrape_configs:
+- job_name: "prometheus"
+  metrics_path: "/metrics"
+  static_configs:
+  - targets:
+    - "{{ ansible_host }}:9090"
+- job_name: "node"
+  file_sd_configs:
+  - files:
+    - "/etc/prometheus/file_sd/node.yml"
+- job_name: "alertmanager"
+  file_sd_configs:
+  - files:
+    - "/etc/prometheus/file_sd/alertmanager.yml"
+- job_name: "grafana"
+  file_sd_configs:
+  - files:
+    - "/etc/prometheus/file_sd/grafana.yml"
+- job_name: 'blackbox'
+  metrics_path: /probe
+  params:
+    module: [http_2xx]
+  static_configs:
+    - targets:
+      - "http://{{ ansible_host }}:9100"
+  relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: 127.0.0.1:9115  # Blackbox exporter.
+
+- job_name: fcos-updates-stg
+  metrics_path: /metrics
+  scheme: https
+  static_configs:
+    - targets:
+      - "status.updates.coreos.stg.fedoraproject.org"
+
+grafana_security:
+  admin_user: admin
+  admin_password: "{{ grafana_password }}"
+grafana_auth:
+  anonymous:
+    org_name: "Example"
+    org_role: Viewer
+grafana_datasources:
+  - name: "Prometheus"
+    type: "prometheus"
+    access: "proxy"
+    url: "http://{{ ansible_host }}:9090"
+    isDefault: true
+grafana_dashboards:
+  - dashboard_id: '1860'
+    revision_id: '12'
+    datasource: '{{ grafana_datasources.0.name }}'
+  - dashboard_id: '3662'
+    revision_id: '2'
+    datasource: '{{ grafana_datasources.0.name }}'
+  - dashboard_id: '4271'
+    revision_id: '4'
+    datasource: '{{ grafana_datasources.0.name }}'
