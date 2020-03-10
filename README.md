@@ -48,40 +48,17 @@ For demonstration purposes, the `test_fs` lustre fileystem contains two "project
 - `proj3` mounted only by `client3`
 Each of these directories is owned by a "project owner" user of the same name.
 
-The Lustre configurations applied to the clients represent different access scenarios:
-- `client1` is on the low-latency network, shares LDAP with the server and has full access to the filesystem (i.e. as defined by Linux permissions) except that the client's root user is not privileged.
-- `client2` has access to the same project, but does not share LDAP and has restricted access with the client's root user acting as the project owner.
-- `client3` is in an isolated project, does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
+The Lustre configurations applied to the clients model different access scenarios:
+- `client1` models a client on the low-latency network which shares LDAP with the server and has full access to the filesystem (i.e. as controlled by normalLinux permissions), except that the client's root user is not privileged.
+- `client2` models a client with access to the same project, but which does not share LDAP and has restricted access with the client's root user acting as the project owner.
+- `client3` models a client in a isolated project, which does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
 
-In addition, some example "project users" are set up to permit testing the above permission control:
+Note that no LDAP service is actually provided here and all users are defined/configured by Ansible. The following "project users" are set up to permit testing the above access control scenarios:
 - `client1`: `andy` and `alex`
 - `client2`: `becky` and `ben`
 - `client3`: `catrin` and `charlie`
 
-For information on how to control this, see [Nodemaps](nodemaps) below.
-
-For demonstration purposes, the three clients are set up as follows:
-
-Client 1:
-- Represents a "trusted" client on the low-latency network using the same LDAP as the server.
-- Mounts the `proj12` subdirectory
-- Users can see canonical filesystem uid/gids.
-- Root is squashed to the "nobody" user, uid/gid=99.
-
-Client 2:
-- Represents a client with access to the low-latency network but no shared LDAP.
-- Also mounts the `proj12` subdirectory.
-- Users cannot see canonical filesystem uid/gids.
-- Root is mapped to the project owner user.
-- All other users are mapped to a "project member" user.
-
-Client 3:
-- Represents a client in an isolated project, with no shared LDAP.
-- Mounts the `proj3` subdirectory.
-- Users cannot see canonical filesystem uid/gids.
-- Root is squashed to the "nobody" user, uid/gid=99.
-- A non-root user "datamanager" is mapped to the project owner.
-- All other users are mapped to a "project member" user.
+For information on how these aspects are configured, see [Nodemaps](nodemaps) below.
 
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
@@ -143,7 +120,7 @@ This is defined by the groups in the inventory template at `terraform/modules/cl
 
 ## Lnets and Lnet routes
 These are defined by `ansible/group_vars`:
-- `lnet_tcpX`: These define the *first* interface on each node, and hence the LNETs which exist. So all nodes (including routers), need to be added to the appropriate one of these groups.
+- `lnet_tcpX`: These define the *first* interface on each node, and hence the lnets which exist. So all nodes (including routers), need to be added to the appropriate one of these groups.
 - `lnet_router_tcpX_to_tcpY`: These define the 2nd interface for routers and also set the routing enabled flag. So only routers need to be added to these groups. Note that the convention here is that `eth0` goes on the lower-numbered network, and that this is the side ansible uses to configure router nodes.
 - `lnet_tcpX_from_tcpY`: These define routes, so any nodes (clients, storage or routers) which need to access nodes on other networks need to be in one or more of these groups. In the routes `dict` in these groups there should be one entry, with the key defining the "end" network (matching the "X" in the filename) and a value defining the gateway. Note a dict is used with `hash_behaviour = merge` set in `ansible/ansible.cfg` so that nodes can be put in more than one routing group, and will end up with multiple entries in their `routes` var. In the example here this is needed for the storage server, which requires routes to both `tcp2` and `tcp3`.
 
@@ -183,7 +160,8 @@ When run, the Ansible will enforce that:
 However it does not currently enforce that:
 - No additional clients ("ranges") are present in the nodemaps it defines
 - No additional routes exist
-although both of these cases should be caught by the automatic diff of Lustre configuration against a known-good config, if defined.
+- No additional id mappings exist
+although the first two cases should be caught by the automatic diff of Lustre configuration against a known-good config, if defined.
 
 # Known Issues
 
