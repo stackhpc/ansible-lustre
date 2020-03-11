@@ -1,15 +1,17 @@
-- command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype uid --idmap {{ item[1] }}:{{ item[2] }}"
+- name: add uid map
+  command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype uid --idmap {{ item[1] }}:{{ item[2] }}"
   loop: "{{ hostvars[loop_host].lustre.idmap }}"
   when: "item[0] in ['both', 'uid']"
   register: add_uidmap
-  failed_when: "(add_uidmap.rc != -1) and ('errno: 17' not in add_uidmap.stderr)"
+  failed_when: "(add_uidmap.rc != 0) and ((add_uidmap.rc != -1) and ('errno: 17' not in add_uidmap.stderr))"
   changed_when: add_uidmap.rc == 0
   # existing idmap seems to give "error: invalid ioctl: 000ce044 errno: 17 with rc=-1"
 
-- command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype gid --idmap {{ item[1] }}:{{ item[2] }}"
+- name: add gid map
+  command: "lctl nodemap_add_idmap --name {{ loop_host | replace('-', '_') }} --idtype gid --idmap {{ item[1] }}:{{ item[2] }}"
   loop: "{{ hostvars[loop_host].lustre.idmap }}"
   when: "item[0] in ['both', 'gid']"
   register: add_gidmap
-  failed_when: "(add_gidmap.rc != -1) and ('errno: 17' not in add_gidmap.stderr)"
+  failed_when: "(add_gidmap.rc != 0) and ((add_gidmap.rc != -1) and ('errno: 17' not in add_gidmap.stderr))"
   changed_when: add_gidmap.rc == 0
   # see above comment
