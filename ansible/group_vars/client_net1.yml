@@ -1,6 +1,6 @@
 lustre:
   trusted: true
-  fileset: '/proj12'
+  fileset: "{{ projects['proj12'].path }}"
 users:
   alex:
     guid: 1101

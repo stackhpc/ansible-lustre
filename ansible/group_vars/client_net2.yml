@@ -1,6 +1,6 @@
 lustre:
   trusted: false
-  fileset: '/proj12'
+  fileset: "{{ projects['proj12'].path }}"
   idmap:
     - [both, "{{ users.root.guid }}", "{{ projects.proj12.owner }}"]
   squash_gid: "{{ projects.proj12.member }}"

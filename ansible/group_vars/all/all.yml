@@ -1,10 +1,12 @@
 ---
 projects:
   proj12:
+    path: /csd3/proj12
     owner: 1100 # uid/gid for owner (should start at 1100) and start of shared project user uid/gid range
     member: 1101
     mode: "o=rwx,g=rxwt,o=x"
   proj3:
+    path: /srcp/proj3
     owner: 3100
     member: 3101
     mode: "o=rwx,g=rxwt,o=x"

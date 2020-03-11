@@ -9,7 +9,7 @@
   tasks:
     - name: create project directories
       file:
-        path: "/mnt/lustre/{{ item.key }}"
+        path: "/mnt/lustre/{{ item.path }}"
         owner: "{{ item.key }}"
         group: "{{ item.key }}"
         mode: "{{ projects[item.key].mode }}"

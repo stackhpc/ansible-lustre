@@ -1,6 +1,6 @@
 lustre:
   trusted: false
-  fileset: '/proj3'
+  fileset: "{{ projects['proj3'].path }}"
   idmap:
     - [both, "{{ users.root.guid }}", "{{ users.nobody.guid }}"]
     - [both, "{{ users.datamanager.guid }}", "{{ projects.proj3.owner }}" ]
