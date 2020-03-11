@@ -1,16 +1,27 @@
 ---
 projects:
-  proj12:
-    path: /csd3/proj12
+  carbon:
+    path: csd3
     owner: 1100 # uid/gid for owner (should start at 1100) and start of shared project user uid/gid range
     member: 1101
-    mode: "o=rwx,g=rxwt,o=x"
-  proj3:
-    path: /srcp/proj3
+    mode: "o=rwx,g=rxwt,o="
+  copper:
+    path: csd3
+    owner: 2100
+    member: 2101
+    mode: "o=rwx,g=rxwt,o="
+  silver:
+    path: srcp
     owner: 3100
     member: 3101
-    mode: "o=rwx,g=rxwt,o=x"
-lustre: # can all be overriden on a per-client basis
+    mode: "o=rwx,g=rxwt,o="
+  sodium:
+    path: srcp
+    owner: 4100
+    member: 4101
+    mode: "o=rwx,g=rxwt,o="
+  
+lustre: # can mostlycar be overriden on a per-client basis
   release: "2.12.4"
   fs_name: test_fs1
   key_duration: 525600 # duration (s) of lustre key validity

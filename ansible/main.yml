@@ -7,7 +7,8 @@
 - import_playbook: clients.yml
 - import_playbook: lnet-test.yml
 - import_playbook: verify.yml
-- import_playbook: users.yml
+- import_playbook: ldap.yml
+#- import_playbook: users.yml
 #- import_playbook: monitoring.yml
 
 # The structure of the above is partly driven by the idea that client configuration might be an entirely separate repo at some point.

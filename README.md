@@ -103,7 +103,7 @@ Once this has completed, there will be Lustre configuration in `ansible/lustre-c
 for correctness and then copy (and potentially commit them) to `ansible/lustre-configs-good/`. Ansible will then compare live config against this each time it is run
 and warn if there are differerences.
 
-Optionally, monitoring may be set up by running:
+Optionally, monitoring may be then set up by running:
 
     ansible-playbook -i inventory monitoring.yml -e "grafana_password=<PASSWORD>"
 
@@ -138,18 +138,20 @@ These groups are then used to generate a configuration file for each node using 
 Additional general information about how lnet routes work is provided under [Lustre networks](lustre-networks) below.
 
 ## Nodemaps
-One nodemap is generated per client. Default values are provided by the `lustre` mapping in `ansible/group_vars/all` and overriden for specific client groups (e.g. in `ansible/group_vars/client_net1.yml`) as required.
+As client's can only be in one nodemap, a nodemap is generated for each client group (e.g. `client_net1` etc.). Nodemap parameters are set using the `lustre` mapping, with default values (which match Lustre's own defaults) given in `ansible/group_vars/all` overriden as required for specific client groups (e.g. in `ansible/group_vars/client_net1.yml`).
 
-The key/value pairs in this mapping function essentially as described in the Lustre [nodemap documentation](http://doc.lustre.org/lustre_manual.xhtml#lustrenodemap) to provide maximum flexibility. In brief:
+The key/value pairs in the `lustre` mapping function essentially as described in the Lustre [nodemap documentation](http://doc.lustre.org/lustre_manual.xhtml#lustrenodemap) to provide maximum flexibility. In brief:
 - `trusted` determines whether client users can see the filesystem's canonical identifiers. Note these identifies are uid/gid - what user/group names these resolve (if at all) to depends on the users/groups present on the server.
 - `admin` controls whether root is squashed. The user/group it is squashed to is defined by the `squash_uid` and `squash_gid` parameters.
 - `squash_uid` and `squash_gid` define which user/group unmapped client users/groups are squashed to on the server. Note that although the lustre documentation states squashing is disabled by default, in fact (under 2.12 and 2.14 at least) the squashed uid and gid default to 99 (the `nobody` user). Therefore if squashing is not required the `trusted` property must be set.
 - `deny_unknown` if set, prevents access to all users not defined in the nodemap.
 - `fileset` if set, restricts the client to mounting only this subdirectory of the Lustre filesystem<sup id="foot1">[1](#f1)</sup>.
-- `idmaps` define specific users/groups to map, and contain a list where each item is a 3-list of:
-    - mapping type: 'uid', 'gid' or 'both'
+- `idmaps` define specific users/groups to map, contains a list where each item is a 3-list of:
+    - mapping type 'uid' or 'gid'
     - client uid/gid to map to ...
     - ... uid/gid on server
+
+Note that despite the very direct mapping to Lustre's concepts, the config demoed here shows that using Ansible varibles can make it more user-friendly, e.g. automatically looking up uids from usernames etc.
 
 ## Users
 While the lustre documentation [states that](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) uid and gids should be the same on all clients this is not necessarily the case where clients are mounting isolated directories. Conversely which nids/gids exist where must be carefully considered in parallel with the mappings provided by the nodemaps to make sure that nids/gids attached to files in project directories make sense to clients.
@@ -201,7 +203,19 @@ Multi-hop paths require routes to be defined along the way: e.g. if node "A" in 
 - The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
 - The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
 
-
+# TODOs
+Items listed here may be useful but are not planned for delivery in current phase.
+- Shared key functionality:
+    - Fix key distribution code.
+    - Test whether kernel key bug exists on current version.
+    - Test workarounds for ssk kernel key issue: Could log in as root rather than using sudo when mounting. Note current `authorized_keys` entries for `root` prevent running commands.
+    - Get reverse DNS lookup working (e.g. `nslookup <ip_addr>`) - will be difficult given current network config. See https://jira.whamcloud.com/browse/LU-10593.
+- Add option to control whether unknown nodemaps (and potentially other "externally"-configured nodemap options, e.g. additional ranges?) are deleted or not.
+- Extend lnet.py and nodemap.py tools with an `import` command to provide full control. Should do an (object-based) diff against live config, change only necessary items and output diff so stdout can drive ansible's `changed_when`.
+- Use an `eth0_address` variable in addition to `ansible_host` to protect against cases where latter is odd.
+- Try using ganesha on the lnet routers: mount lustre, then re-export as nfs for clients.
+- Speed tests: various ssk levels, ganesha etc.
+- Update lustre Prometheus exporter to use `https://github.com/HewlettPackard/lustre_exporter/pull/148` for OST data in 2.12 (note PR currently doesn't compile).
 ---
 
 <b id="f1">1.</b> The lustre documentation for the [Fileset Feature](http://doc.lustre.org/lustre_manual.xhtml#SystemConfigurationUtilities.fileset) is confusing/incorrect as it appears to be describing **submounts** which involve the client specifying a path in the filesystem, and are hence voluntary, with **filesets** where the client only specifies the filesystem to mount and the server only exports

@@ -7,9 +7,18 @@
       vars:
         mount_state: mounted # absent or mounted
   tasks:
+    - name: create csd3/srcp directories
+      file:
+        path: "/mnt/lustre/{{ item }}"
+        state: directory
+        owner: root
+      loop:
+        - csd3
+        - srcp
+
     - name: create project directories
       file:
-        path: "/mnt/lustre/{{ item.value.path }}"
+        path: "/mnt/lustre/{{ item.value.path }}/{{ item.key }}"
         owner: "{{ item.key }}"
         group: "{{ item.key }}"
         mode: "{{ projects[item.key].mode }}"

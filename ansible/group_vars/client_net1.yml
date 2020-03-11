@@ -1,10 +1,3 @@
 lustre:
   trusted: true
-  fileset: "{{ projects['proj12'].path }}"
-users:
-  alex:
-    guid: 1101
-    groups: [proj12]
-  andy:
-    guid: 1102
-    groups: [proj12]
+  fileset: "/csd3"

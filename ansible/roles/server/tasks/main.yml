@@ -24,5 +24,3 @@
   import_tasks: lnet.yml
 - name: format and mount MDT/OST/MGS disks
   import_tasks: format.yml
-#- name: configure lustre with tenant parameters
-#  import_tasks: tenants.yml

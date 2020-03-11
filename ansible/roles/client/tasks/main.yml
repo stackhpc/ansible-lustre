@@ -49,20 +49,6 @@
   # TODO: not convinced this works, try
   # "echo 3 > /proc/fs/lustre/sptlrpc/gss/lgss_keyring/debug_level" instead
 
-- name: create project owner groups
-  group:
-    name: "{{ item }}"
-    gid: "{{ projects[item].owner }}"
-  loop: "{{ projects.keys() }}"    
-
-- name: create project owner users
-  user:
-    name: "{{ item }}"
-    group: "{{ item }}"
-    uid: "{{ projects[item].owner }}"
-    create_home: false # FIXME: seems to have created them in /home
-  loop: "{{ projects.keys() }}"
-
 - name: mount lustre project subdirectory
   # NB: actual subdir may be determined by fileset on client's nodemap
   mount:

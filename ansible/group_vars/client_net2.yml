@@ -1,10 +1,11 @@
 lustre:
   trusted: false
-  fileset: "{{ projects['proj12'].path }}"
+  fileset: "/csd3/carbon"
   idmap:
-    - [both, "{{ users.root.guid }}", "{{ projects.proj12.owner }}"]
-  squash_gid: "{{ projects.proj12.member }}"
-  squash_uid: "{{ projects.proj12.member }}"
+    - ['gid', "{{ users.root.guid }}", "{{ projects.carbon.owner }}"]
+    - ['uid', "{{ users.root.guid }}", "{{ projects.carbon.owner }}"]
+  squash_gid: "{{ projects.carbon.member }}"
+  squash_uid: "{{ projects.carbon.member }}"
 
 users: # NB neither of these exist on the server
   becky:
