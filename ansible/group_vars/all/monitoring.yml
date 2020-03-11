@@ -34,10 +34,10 @@ prometheus_scrape_configs:
   file_sd_configs:
   - files:
     - "/etc/prometheus/file_sd/node.yml"
-- job_name: "alertmanager"
+- job_name: "lustre"
   file_sd_configs:
   - files:
-    - "/etc/prometheus/file_sd/alertmanager.yml"
+    - "/etc/prometheus/file_sd/lustre.yml"
 - job_name: "grafana"
   file_sd_configs:
   - files:
