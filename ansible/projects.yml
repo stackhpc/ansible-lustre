@@ -24,7 +24,9 @@
     delegate_to: "{{ item }}"
     loop: "{{ groups['lustre_client'] }}"
 
-  # TODO: import ssk
+  - name: setup ssk shared keys on server
+    import_tasks: ssk.yml
+    when: "lustre.ssk_flavor != 'null'"
 
   - name: activate nodemaps
     shell: "lctl get_param nodemap.* ; lctl nodemap_activate 1; lctl get_param nodemap.* "
@@ -99,3 +101,30 @@
     loop: "{{ groups['lustre_client'] }}"
     loop_control:
       loop_var: loop_host
+
+- name: Deploy ssk client keys
+  hosts: lustre_client
+  gather_facts: false
+  become: true
+  tasks:
+    - block:
+      # name: Create lustre config directory # done in projects.yml    
+
+      - name: slurp key from server
+        shell:
+          cmd: "ssh {{ ansible_ssh_common_args }} {{ ansible_user }}@{{ hostvars['lustre-storage']['ansible_host'] }} -- sudo cat /etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key | base64"
+        register: client_ssk
+        delegate_to: localhost
+        become: false
+      
+      - name: write key to client
+        shell:
+          cmd: "echo '{{ client_ssk.stdout }}' | base64 -d > /etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+        # TODO: changed_when - is this even possible??
+      
+      - name: secure key
+        file:
+          path: "/etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+          mode: 0600
+      
+      when: "lustre.ssk_flavor != 'null'"
