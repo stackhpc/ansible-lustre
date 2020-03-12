@@ -64,6 +64,8 @@ For information on how these aspects are configured, see [Nodemaps](nodemaps) be
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
 
+**NB** There are some rough edges to this, see (Known Issues)[known-issues]
+
 ## Create infrastructure with terraform
 
 [Download](https://www.terraform.io/downloads.html) the 0.12.x release, unzip and install it:
@@ -187,6 +189,8 @@ although the first two cases should be caught by the automatic diff of Lustre co
   - Removed key transfer code broken by refactor
   
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
+
+- The "start lustre exporter" step of monitoring.yml sometimes gets stuck, can't work out why yet. Rerun the playbook (possibly several times) until past this.
 
 # Lustre networks
 There are essentially 3 aspects to be configured:

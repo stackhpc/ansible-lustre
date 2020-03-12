@@ -1,26 +1,20 @@
 prometheus_web_external_url: "http://{{ ansible_host }}:9090"
 prometheus_storage_retention: "2d"
 
-prometheus_alertmanager_config:
-  - scheme: http
-    static_configs:
-      - targets:
-        - "{{ ansible_host }}:9093"
-
 prometheus_targets:
   node:
     - targets:
         "{{ groups['all'] | map('extract', hostvars, ['ansible_host']) | map('regex_replace', '$', ':9100') | list }}"
       labels:
         env: demo
-  alertmanager:
-    - targets:
-      - "{{ ansible_host }}:9093"
-      labels:
-        env: demo
   grafana:
     - targets:
       - "{{ ansible_host }}:3000"
+      labels:
+        env: demo
+  lustre:
+    - targets:
+        "{{ groups['all'] | map('extract', hostvars, ['ansible_host']) | map('regex_replace', '$', ':9169') | list }}"
       labels:
         env: demo
 
@@ -78,12 +72,12 @@ grafana_datasources:
     url: "http://{{ ansible_host }}:9090"
     isDefault: true
 grafana_dashboards:
-  - dashboard_id: '1860'
+  - dashboard_id: '1860' # node exporter full
     revision_id: '12'
     datasource: '{{ grafana_datasources.0.name }}'
-  - dashboard_id: '3662'
+  - dashboard_id: '3662' # prometheus overview
     revision_id: '2'
     datasource: '{{ grafana_datasources.0.name }}'
-  - dashboard_id: '4271'
-    revision_id: '4'
+  - dashboard_id: '9658' # lustre
+    revision_id: '3'  
     datasource: '{{ grafana_datasources.0.name }}'

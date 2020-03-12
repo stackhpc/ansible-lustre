@@ -35,7 +35,7 @@ resource "openstack_compute_instance_v2" "client1" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
@@ -46,7 +46,7 @@ resource "openstack_compute_instance_v2" "admin" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
@@ -75,7 +75,7 @@ resource "openstack_compute_instance_v2" "client2" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   network {
     uuid = openstack_networking_network_v2.net2.id
   }
@@ -87,7 +87,7 @@ resource "openstack_compute_instance_v2" "lnet2" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   config_drive = true
   network {
     uuid = openstack_networking_network_v2.net1.id
@@ -121,7 +121,7 @@ resource "openstack_compute_instance_v2" "client3" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   network {
     uuid = openstack_networking_network_v2.net3.id
   }
@@ -132,7 +132,7 @@ resource "openstack_compute_instance_v2" "lnet3" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   config_drive = true
   network {
     uuid = openstack_networking_network_v2.net2.id
@@ -150,7 +150,7 @@ resource "openstack_compute_instance_v2" "lustre_server" {
   image_name = var.image
   flavor_name = var.flavor
   key_pair = openstack_compute_keypair_v2.terraform.name
-  security_groups = ["default"]
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
@@ -195,6 +195,51 @@ resource "openstack_compute_volume_attach_v2" "va_ost1" {
   volume_id   = openstack_blockstorage_volume_v3.ost1.id
   depends_on  = [openstack_compute_volume_attach_v2.va_mdt1]
 }
+
+resource "openstack_networking_secgroup_v2" "secgroup_monitoring" {
+  name        = "secgroup_monitoring"
+  description = "Security group with monitoring access"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_grafana" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 3000
+  port_range_max    = 3000
+  security_group_id = openstack_networking_secgroup_v2.secgroup_monitoring.id
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_prometheus" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 9090
+  port_range_max    = 9090
+  security_group_id = openstack_networking_secgroup_v2.secgroup_monitoring.id
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  security_group_id = openstack_networking_secgroup_v2.secgroup_monitoring.id
+  remote_ip_prefix  = "0.0.0.0/0"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_same_ingress" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  security_group_id = openstack_networking_secgroup_v2.secgroup_monitoring.id
+  remote_group_id = openstack_networking_secgroup_v2.secgroup_monitoring.id # b/c can't specify "default" group
+}
+
+
+
 
 # --- files ---
 data  "template_file" "ohpc" {
