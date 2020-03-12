@@ -15,78 +15,16 @@
       - cli2mdt
     # TODO: changed_when e.g. "lctl get_param mgs.*.live.{{ lustre.fs_name }} | grep flavor" => ['test_fs1.srpc.flavor.default.cli2ost=skn', 'test_fs1.srpc.flavor.default.cli2mdt=skn']
     
-  - name: Create lustre config directory
-    file:
-      path: /etc/lustre
-      state: directory # TODO: secure this? keys are created as read-only for root
-
-  - name: create server keys
-    command:
-      cmd: "lgss_sk -t server -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap {{ item | replace('-', '_') }} -w /etc/lustre/{{ item | replace('-', '_') }}.server.key"
-      creates: "/etc/lustre/{{ item | replace('-', '_') }}.server.key"
-    loop: "{{ groups['lustre_client'] }}"
-    when: "lustre.ssk_flavor != 'null'"
-
-  - name: copy server keys to client keys (on server)
-    command:
-      cmd: "cp /etc/lustre/{{ item | replace('-', '_') }}.server.key /etc/lustre/{{ item | replace('-', '_') }}.client.key"
-      creates: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
-    loop: "{{ groups['lustre_client'] }}"
-    when: "lustre.ssk_flavor != 'null'"
-
-  - name: check if client keys have already been modified
-    shell: "lgss_sk -r /etc/lustre/{{ item | replace('-', '_') }}.client.key | grep -c client"
-    ignore_errors: yes
-    register: client_keyfile_types
-    loop: "{{ groups['lustre_client'] }}"
-    changed_when: False
-    when: "lustre.ssk_flavor != 'null'"
-
-  - name: create client keys (on server)
-    # This is really slow
-    command: 
-      cmd: "lgss_sk -t client -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap admin -m /etc/lustre/{{ item.item | replace('-', '_') }}.client.key"
-    when: "'stdout' in item and item.stdout == '1'" # "in" test is False if above check was skipped (because ssk_flavor == 'null')
-    changed_when: "item.stdout == '0'"
-    loop: "{{ client_keyfile_types.results }}" # is effectively over groups['lustre_client'] again
-    loop_control:
-      label: "{{ item.item }}"
-
-  - name: load server keys
-    # Needed because we haven't/don't mount the mdt/ost using the skpath option, which would load all the keys anyway
-    command: "lgss_sk -l /etc/lustre/{{ item | replace('-', '_') }}.server.key"
-    loop: "{{ groups['lustre_client'] }}"
-    when: "lustre.ssk_flavor != 'null'"
-    # TODO: changed_when
-
   - name: ensure client config directory exists
+    # NB: we do this even if we're not using ssk as then clients can always mount with skpath=/etc/lustre, it just won't load any keys if it's empty.
     file:
       path: /etc/lustre
       state: directory
+      mode: 0600
     delegate_to: "{{ item }}"
     loop: "{{ groups['lustre_client'] }}"
-    # NB: we do this even if we're not using ssk as then clients can always mount with skpath=/etc/lustre, it just won't load any keys if it's empty.
 
-  # TODO: distribute client keys to clients
-  #  when: "lustre.ssk_flavor != 'null'"
-  # Consider using slurp to read the keys to control host memory, then using shell: "base64 -d < {{ content }} > /etc/lustre/<keyfile>"
-  # similar to suggestion here : https://stackoverflow.com/a/31039053/916373
-  # NB: you can't use copy with content parameter to write it, see https://github.com/ansible/ansible/issues/20150
-  # NB: you can't use synchronise from server->client (or vice versa) due to ssh setup (keys are only on control host)
-
-  - name: configure key checking daemon
-    lineinfile:
-      path: "/etc/sysconfig/lsvcgss"
-      regexp: "^LSVCGSSDARGS="
-      line: "LSVCGSSDARGS='-vv -s -m -o'" # verbose, shared-key mode, MDS, OST
-    when: "lustre.ssk_flavor != 'null'"
-    # TODO: changed_when
-
-  - name: start key checking daemon
-    command: service lsvcgss start
-    when: "lustre.ssk_flavor != 'null'"
-    # TODO: changed_when: doesn't actually matter if run more than once
-    # note to start in foreground use: lsvcgssd -f -vv -s -m -o
+  # TODO: import ssk
 
   - name: activate nodemaps
     shell: "lctl get_param nodemap.* ; lctl nodemap_activate 1; lctl get_param nodemap.* "
@@ -161,18 +99,3 @@
     loop: "{{ groups['lustre_client'] }}"
     loop_control:
       loop_var: loop_host
-
-  # - name: create project owner groups
-  #   group:
-  #     name: "{{ item }}"
-  #     gid: "{{ projects[item].owner }}"
-  #   loop: "{{ projects.keys() }}"    
-
-  # - name: create project owner users
-  #   user:
-  #     name: "{{ item }}"
-  #     group: "{{ item }}"
-  #     uid: "{{ projects[item].owner }}"
-  #     create_home: false # FIXME: seems to have created them in /home
-  #   loop: "{{ projects.keys() }}"
-  

@@ -1,0 +1,84 @@
+- name: ssk keys WIP
+  hosts: lustre_server[0]
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: create server keys
+      command:
+        cmd: "lgss_sk -t server -f {{ lustre.fs_name }} -e {{ lustre.key_duration }} --nodemap {{ item | replace('-', '_') }} -w /etc/lustre/{{ item | replace('-', '_') }}.server.key"
+        creates: "/etc/lustre/{{ item | replace('-', '_') }}.server.key"
+      loop: "{{ groups['lustre_client'] }}"
+      #when: "lustre.ssk_flavor != 'null'"
+
+    - name: copy server keys to client keys (on server)
+      command:
+        cmd: "cp /etc/lustre/{{ item | replace('-', '_') }}.server.key /etc/lustre/{{ item | replace('-', '_') }}.client.key"
+        creates: "/etc/lustre/{{ item | replace('-', '_') }}.client.key"
+      loop: "{{ groups['lustre_client'] }}"
+      #when: "lustre.ssk_flavor != 'null'"
+
+    - name: check if client keys have already been modified
+      shell: "lgss_sk -r /etc/lustre/{{ item | replace('-', '_') }}.client.key | grep -c client"
+      failed_when: false
+      register: client_keyfile_types
+      loop: "{{ groups['lustre_client'] }}"
+      changed_when: False
+      #when: "lustre.ssk_flavor != 'null'"
+
+    - name: modify client keys to client-type (on server)
+      # This is really slow
+      command: 
+        cmd: "lgss_sk -t client -m /etc/lustre/{{ item.item | replace('-', '_') }}.client.key"
+      when: "'stdout' in item and item.stdout == '0'" # "in" test is False if above check was skipped (because ssk_flavor == 'null')
+      changed_when: "item.stdout == '0'"
+      loop: "{{ client_keyfile_types.results }}" # is effectively over groups['lustre_client'] again
+      loop_control:
+        label: "{{ item.item }}"
+    
+    - name: load server keys
+      # Needed because we haven't/don't mount the mdt/ost using the skpath option, which would load all the keys anyway
+      command: "lgss_sk -l /etc/lustre/{{ item | replace('-', '_') }}.server.key"
+      loop: "{{ groups['lustre_client'] }}"
+      when: "lustre.ssk_flavor != 'null'"
+      # TODO: changed_when
+
+  - name: configure key checking daemon
+    lineinfile:
+      path: "/etc/sysconfig/lsvcgss"
+      regexp: "^LSVCGSSDARGS="
+      line: "LSVCGSSDARGS='-vv -s -m -o'" # verbose, shared-key mode, MDS, OST
+    when: "lustre.ssk_flavor != 'null'"
+    # TODO: changed_when
+
+  - name: start key checking daemon
+    command: service lsvcgss start
+    when: "lustre.ssk_flavor != 'null'"
+    # TODO: changed_when: doesn't actually matter if run more than once
+    # note to start in foreground use: lsvcgssd -f -vv -s -m -o
+
+- name: Deploy ssk client keys
+  #hosts: lustre_client
+  hosts: lustre-client1
+  gather_facts: false
+  become: true
+  tasks:
+    # name: Create lustre config directory # done in projects.yml
+
+    - name: slurp key from server
+      shell:
+        cmd: "ssh {{ ansible_ssh_common_args }} {{ ansible_user }}@{{ hostvars['lustre-storage']['ansible_host'] }} -- sudo cat /etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key | base64"
+      register: client_ssk
+      delegate_to: localhost
+      become: false
+    
+    - name: write key to client
+      shell:
+        cmd: "echo '{{ client_ssk.stdout }}' | base64 -d > /etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+      # TODO: changed_when - is this even possible??
+    
+    - name: secure key
+      file:
+        path: "/etc/lustre/{{ inventory_hostname | replace('-', '_') }}.client.key"
+        mode: 0600
+      
