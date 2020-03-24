@@ -1,3 +1,10 @@
 lustre:
   trusted: true
   fileset: "/csd3"
+users:
+  alex:
+    guid: 1102
+    groups: [proj12]
+  andy:
+    guid: 1103
+    groups: [proj12]

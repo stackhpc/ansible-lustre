@@ -1,23 +1,25 @@
----
-- name: Create test users
-  hosts: lustre_client:!admin_client
-  become: true
+- name: Fake LDAP for server
+  hosts: lustre-storage[0]
   gather_facts: false
+  become: true
   tasks:
+    - name: create project owner users/groups
+      import_tasks: project-users.yml
 
-    - name: create groups
-      group:
-        name: "{{ item }}"
-        gid: "{{ users[item].guid }}"
-        state: present
-      loop: "{{ users.keys() }}"
+    - name: create project user user/groups
+      import_tasks: test-users.yml
+      vars:
+        users: "{{ hostvars['lustre-client1']['users'] }}"
+
+- name: Setup client users
+  hosts: lustre_client:!admin_client
+  gather_facts: false
+  become: true
+  tasks:
+    - name: create project owner users/groups
+      import_tasks: project-users.yml
+
+    - name: create project user user/groups
+      import_tasks: test-users.yml
+      
     
-    - name: create users
-      user:
-        name: "{{ item }}"
-        uid: "{{ users[item].guid }}"
-        group: "{{ item }}"
-        groups: "{{ users[item].groups }}"
-        state: present
-        remove: "yes"
-      loop: "{{ users.keys() }}"

@@ -14,15 +14,6 @@
       - cli2ost
       - cli2mdt
     # TODO: changed_when e.g. "lctl get_param mgs.*.live.{{ lustre.fs_name }} | grep flavor" => ['test_fs1.srpc.flavor.default.cli2ost=skn', 'test_fs1.srpc.flavor.default.cli2mdt=skn']
-    
-  - name: ensure client config directory exists
-    # NB: we do this even if we're not using ssk as then clients can always mount with skpath=/etc/lustre, it just won't load any keys if it's empty.
-    file:
-      path: /etc/lustre
-      state: directory
-      mode: 0600
-    delegate_to: "{{ item }}"
-    loop: "{{ groups['lustre_client'] }}"
 
   - name: setup ssk shared keys on server
     import_tasks: ssk.yml
@@ -96,11 +87,12 @@
     command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property deny_unknown --value {{ hostvars[item].lustre.deny_unknown|int }}"
     loop: "{{ groups['lustre_client'] }}"
 
-  - name: configure client nodemap mappings
-    include_tasks: idmap.yml
-    loop: "{{ groups['lustre_client'] }}"
-    loop_control:
-      loop_var: loop_host
+  # - name: configure client nodemap mappings
+  #   include_tasks: idmap.yml
+  #   loop: "{{ groups['lustre_client'] }}"
+  #   loop_control:
+  #     loop_var: loop_host
+
 
 - name: Deploy ssk client keys
   hosts: lustre_client

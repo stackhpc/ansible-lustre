@@ -2,12 +2,13 @@
   hosts: admin_client
   gather_facts: false
   become: true
-  roles:
-    - role: client
+  tasks:
+    - import_role:
+        name: client
       vars:
         mount_state: mounted # absent or mounted
-  tasks:
-    - name: create csd3/srcp directories
+
+    - name: create csd3/srcp directories in lustre fs
       file:
         path: "/mnt/lustre/{{ item }}"
         state: directory
@@ -15,10 +16,14 @@
       loop:
         - csd3
         - srcp
+      
+    - name: create project users/groups (fake LDAP)
+      # NB: this is annoying: only needed because ansible's file module (below) needs user/group names, not uid/gids
+      import_tasks: project-users.yml
 
-    - name: create project directories
+    - name: create project directories in lustre fs
       file:
-        path: "/mnt/lustre/{{ item.value.path }}/{{ item.key }}"
+        path: "/mnt/lustre/{{ item.value.root }}/{{ item.key }}"
         owner: "{{ item.key }}"
         group: "{{ item.key }}"
         mode: "{{ projects[item.key].mode }}"

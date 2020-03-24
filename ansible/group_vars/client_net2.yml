@@ -1,16 +1,17 @@
 lustre:
   trusted: false
-  fileset: "/csd3/carbon"
+  fileset: "/csd3/proj12"
   idmap:
-    - ['gid', "{{ users.root.guid }}", "{{ projects.carbon.owner }}"]
-    - ['uid', "{{ users.root.guid }}", "{{ projects.carbon.owner }}"]
-  squash_gid: "{{ projects.carbon.member }}"
-  squash_uid: "{{ projects.carbon.member }}"
+    - ['gid', "{{ users.root.guid }}", "{{ projects.proj12.owner_guid }}"]
+    - ['uid', "{{ users.root.guid }}", "{{ projects.proj12.owner_guid }}"]
+  squash_gid: "{{ projects.proj12.member_guid }}"
+  squash_uid: "{{ projects.proj12.member_guid }}"
 
-users: # NB neither of these exist on the server
+users:
   becky:
-    guid: 1101 # NB deliberately clashes with a client1 user
-    groups: [proj12] # empty as user not present on server
+    guid: 1102 # NB deliberately clashes with ldap user alex
+    groups: [proj12]
+    
   ben:
     guid: 2109
     groups: [proj12]

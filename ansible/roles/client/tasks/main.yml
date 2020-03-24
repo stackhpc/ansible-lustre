@@ -49,6 +49,13 @@
   # TODO: not convinced this works, try
   # "echo 3 > /proc/fs/lustre/sptlrpc/gss/lgss_keyring/debug_level" instead
 
+- name: create lustre config directory
+  # NB: done even if not using ssk as can always mount with -o skpath=/etc/lustre, it just won't load any keys if it's empty.
+  file:
+    path: /etc/lustre
+    state: directory
+    mode: 0600
+  
 - name: mount lustre project subdirectory
   # NB: actual subdir may be determined by fileset on client's nodemap
   mount:

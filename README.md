@@ -42,24 +42,24 @@ In addition this repo provides two extra tools to help prevent misconfiguration:
 - `lnet-test.yml` runs `lnet ping` to check connectivity is present between clients and server, and is not present between clients in different lnets.
 - `verify.yml` exports lustre configuration to files on the control host, then automatically diffs them against a previous known-good configuation (if available).
 
-# Projects, Users and Permissions
+# Projects and Users
 
-For demonstration purposes, the `test_fs` lustre fileystem contains two "project directories":
-- `proj12` mounted by `client1` and `client2`
-- `proj3` mounted only by `client3`
-Each of these directories is owned by a "project owner" user of the same name.
+For demonstration purposes, the `test_fs` lustre fileystem contains two root directories, `/csd3` and `/srcp` and two "project directories":
+- `/csd3/proj12` mounted by `client1` and `client2`
+- `/srcp/proj3` mounted only by `client3`
+Project directories are owned by a "project owner" user and group which has the same name as the project.
 
 The Lustre configurations applied to the clients model different access scenarios:
-- `client1` models a client on the low-latency network which shares LDAP with the server and has full access to the filesystem (i.e. as controlled by normalLinux permissions), except that the client's root user is not privileged.
+- `client1` models a client on the CSD3 low-latency network which shares LDAP with the server and has full access to the filesystem (i.e. as controlled by normalLinux permissions), except that the client's root user is not privileged.
 - `client2` models a client with access to the same project, but which does not share LDAP and has restricted access with the client's root user acting as the project owner.
-- `client3` models a client in a isolated project, which does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
+- `client3` models a client in a isolated SRDP project, which does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
 
 Note that no LDAP service is actually provided here and all users are defined/configured by Ansible. The following "project users" are set up to permit testing the above access control scenarios:
 - `client1`: `andy` and `alex`
 - `client2`: `becky` and `ben`
 - `client3`: `catrin` and `charlie`
 
-For information on how these aspects are configured, see [Nodemaps](nodemaps) below.
+For details of how these aspects are configured, see [Nodemaps](nodemaps) below.
 
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
