@@ -21,7 +21,7 @@
 - name: create project member users
   user:
     name: "{{ item }}-member"
-    group: "{{ item }}"
+    group: "{{ item }}-member"
     uid: "{{ projects[item].member_guid }}"
     create_home: false # FIXME: seems to have created them in /home
   loop: "{{ projects.keys() }}"

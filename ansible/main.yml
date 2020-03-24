@@ -3,9 +3,9 @@
 - import_playbook: server.yml   # installs packages, formats drives, configures lnet etc
 - import_playbook: routers.yml  # ditto
 - import_playbook: projects.yml # configures MGS parameters for projects. Requires server.yml so lustre fs exists.
+- import_playbook: lnet-test.yml # tests connectivity at lnet level
 - import_playbook: admin.yml    # creates admin client and uses it to create project directories in lustre fs. Requires server.yml (so lustre fs exists) and projects.yml (so admin nodemap is defined)
 - import_playbook: clients.yml  # installs client packages, mounts fs
-- import_playbook: lnet-test.yml # tests connectivity at lnet level
 - import_playbook: verify.yml   # export lustre config and diffs against known-good config (if provided in lustre-configs-good/)
 - import_playbook: users.yml    # sets up user/groups across server and clients
 

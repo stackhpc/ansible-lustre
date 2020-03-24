@@ -2,9 +2,9 @@ lustre:
   trusted: false
   fileset: "/csd3/proj12"
   idmap:
-    - ['gid', "{{ users.root.guid }}", "{{ projects.proj12.owner_guid }}"]
+    #- ['gid', "{{ users.root.guid }}", "{{ projects.proj12.owner_guid }}"] # don't do this else /mnt/lustre's group appears as root to all other client1 users
     - ['uid', "{{ users.root.guid }}", "{{ projects.proj12.owner_guid }}"]
-  squash_gid: "{{ projects.proj12.member_guid }}"
+  squash_gid: "{{ projects.proj12.owner_guid }}"
   squash_uid: "{{ projects.proj12.member_guid }}"
 
 users:

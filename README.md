@@ -174,7 +174,7 @@ However it does not currently enforce that:
 - No additional clients ("ranges") are present in the nodemaps it defines
 - No additional routes exist
 - No additional id mappings exist
-although the first two cases should be caught by the automatic diff of Lustre configuration against a known-good config, if defined.
+All of these should be caught by the automatic diff of Lustre configuration against a known-good config, if defined. However note that if you modify the ansible config to add ranges/routes/idmaps, run ansible, then delete them and run ansible again they **will not** be removed and must be manually removed using lustre commands.
 
 # Known Issues
 
@@ -191,6 +191,7 @@ although the first two cases should be caught by the automatic diff of Lustre co
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
 
 - The "start lustre exporter" step of monitoring.yml sometimes gets stuck, can't work out why yet. Rerun the playbook (possibly several times) until past this.
+- When running projects.yml, nodemap configuration parameters will always show as changed, even if they actually aren't due to lustre CLI limitations.
 
 # Lustre networks
 There are essentially 3 aspects to be configured:
