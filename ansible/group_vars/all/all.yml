@@ -4,12 +4,12 @@ projects:
     root: csd3
     owner_guid: 1100 # uid/gid for owner (should start at 1100) and start of shared project user uid/gid range
     member_guid: 1101
-    mode: "o=rwx,g=rxwt,o="
+    mode: "ug=rwx,+t"
   proj3:
     root: srcp
     owner_guid: 3100
     member_guid: 3101
-    mode: "o=rwx,g=rxwt,o="
+    mode: "ug=rwx,+t"
   
 lustre: # can mostly be overriden on a per-client basis
   release: "2.12.4"

@@ -194,6 +194,11 @@ Again this client is modelled as separate from the server/client1 LDAP and the "
 - The same comments apply to the client user `centos` as made for client 2.
 TODO: describe root.
 
+TODO: note that the users dict is addititive due to config flag (reqd. for lnet setup)
+
+TODO: test this all again from scratch now I've set the sticky bit!
+
+TODO: all the stuff re. 2ndary groups may be wrong! Think it is actually - so need to map user's group into correct one UNLESS trusted=true
 
 # Limitations
 Once the cluster is running, changing Lustre configuration is tricky and may require unmounting/remounting clients, or waiting for changes to propagate. Consult the lustre documentation.
