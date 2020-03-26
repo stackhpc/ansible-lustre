@@ -64,7 +64,7 @@ For details of how these aspects are configured, see [Configuration](configurati
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
 
-**NB** There are some rough edges to this, see (Known Issues)[known-issues]
+**NB** There are some rough edges to this, see [Known Issues](#known-issues) if problems are encountered.
 
 ## Create infrastructure with terraform
 
@@ -119,7 +119,7 @@ To ssh into nodes use:
 
     ssh <ansible_ssh_common_args> centos@<private_ip>
 
-where both `<ansible_ssh_common_args>` and the relevant `<private_ip>` are defined `ansible/inventory`.
+where both `<ansible_ssh_common_args>` and the relevant `<private_ip>` are defined in `ansible/inventory`.
 
 For routers, note the relevant IP is the one for the lower-numbered network it is connected to.
 
@@ -135,7 +135,7 @@ These are defined by `ansible/group_vars`:
 - `lnet_router_tcpX_to_tcpY`: These define the 2nd interface for routers and also set the routing enabled flag. So only routers need to be added to these groups. Note that the convention here is that `eth0` goes on the lower-numbered network, and that this is the side ansible uses to configure router nodes.
 - `lnet_tcpX_from_tcpY`: These define routes, so any nodes (clients, storage or routers) which need to access nodes on other networks need to be in one or more of these groups. In the routes `dict` in these groups there should be one entry, with the key defining the "end" network (matching the "X" in the filename) and a value defining the gateway. Note a dict is used with `hash_behaviour = merge` set in `ansible/ansible.cfg` so that nodes can be put in more than one routing group, and will end up with multiple entries in their `routes` var. In the example here this is needed for the storage server, which requires routes to both `tcp2` and `tcp3`.
 
-These groups are then used to generate a configuration file for each node using the `ansible/lnet.conf.j2` template as part of the server/router/client role, and then imported to lustre.
+These groups are then used to generate a configuration file for each node using the `ansible/lnet.conf.j2` template as part of the appropriate server/router/client role, and then imported to lustre.
 
 Additional general information about how lnet routes work is provided under [Lustre networks](lustre-networks) below.
 
@@ -156,11 +156,11 @@ The key/value pairs in the `lustre` mapping function essentially as described in
 This configuration follows Lustre's concepts/terminology very closely, although the use of Ansible makes it somewhat more user-friendly as for example uids can be looked up from usernames.
 
 ## Users
-The demo users `andy` etc are defined for each client individually in `group_vars/client_net*.yml:users`. These users are created on the appropriate clients by `users.yml`. This also creates the client1 users on the server to fake shared LDAP. While the lustre documentation specifically [states](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) that uid and gids are required to be the same "on all clients" this is not to be the case when clients are mounting isolated directories as here.
+The demo users `andy` etc are defined for each client individually in `group_vars/client_net*.yml:users`. These users are created on the appropriate clients by `users.yml` which also creates the client1 users on the server to fake shared LDAP. While the lustre documentation specifically [states](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) that uid and gids are required to be the same "on all clients" this is not necessarily the case when clients are mounting isolated directories as here.
 
-Note that `group_vars/all.yml` also defines `root` and `nobody` users - this is purely to allow them to be referred to in the client nodemap setup (and as for lnet setup the combination of `user` mappings from the `all` and client group_vars files relies on having `hash_behaviour = merge` in ansible's configuration).
+Note that `group_vars/all.yml` also defines `root` and `nobody` users - these are default OS users and are defined here purely to allow them to be referred to in the client nodemap setup. The combination of  `user` mappings from the `all` and client group_vars files requires having `hash_behaviour = merge` in ansible's configuration (as does the lnet configuration described above).
 
-The project owner user/groups are defined by `group_vars/all.yml:projects` and are also created by `users.yml`. For simplicity, these are the same on all clients and the server although strictly client2 does not need the `proj12` user/group, etc.
+The project owner and project member user/groups are defined by `group_vars/all.yml:projects` and are also created by `users.yml`. For simplicity, these are the same on all clients and the server although strictly client2 does not need the `proj12` user/group, etc.
 
 ## Projects
 Project directories are defined by `group_vars/all.yml:projects`. The `root` key is prepended to the project name to give the project's path in the lustre filesystem.
@@ -179,18 +179,18 @@ A few aspects of routes may not be are not obvious:
 - Routes are defined *for* a specific node, but *to* a whole network. This means that you can enable e.g. a client in net3 to reach storage in net1, without the reverse route enabling a client in net1 to access the client in net3 (because the reverse route is only defined for storage1).
 - Routes are defined in terms of the "end" network and the gateway to access to get there. The gateway is the router which provides the "closest" hop towards the end network.
 Multi-hop paths require routes to be defined along the way: e.g. if node "A" in network 1 needs to go through networks 2 and 3 to reach node "B" in network 4 then:
-- node "A" needs a route to 4 to be defined using the gateway router from 1-2.
-- The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
-- The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
+    - node "A" needs a route to 4 to be defined using the gateway router from 1-2.
+    - The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
+    - The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
 
 ## Project access
 
-It is not necessarily obvious how to use the nodemap functionality, project directory permissions and user setup to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If experimenting with configuration note that:
+It is not necessarily obvious how to configure the nodemap functionality, project directory permissions and users/groups to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If experimenting with configuration note that:
 - While the manual says nodemap changes propagate in ~10 seconds, it was found necessary to unmount and remount the filesystem to get changes to apply, although this was nearly instantaneous and proved robust.
-- Removal of idmaps etc will require manual intervention using lustre commands - see [Limitations](#limitations)
+- Removal of idmaps etc will require manual intervention using lustre commands - see [Limitations](#limitations).
 - Reducing the caching of user/group upcalls from the default 20 minutes to 1 second is recommended using:
 
-        sudo lctl set_param mdt.*.identity_expire=1
+        [centos@lustre-storage ~]$ sudo lctl set_param mdt.*.identity_expire=1
 
 - Whether modifying configuration using ansible or lustre commands, running the `verify.yml` playbook and reviewing `ansible/lustre-configs-live/lustre-storage-nodenet.conf` is a convenient way to check the actual lustre configuration.
 
@@ -209,10 +209,10 @@ Secondly, note that `users.yml` ensures the "project owner" users/groups (e.g. `
 The client configurations are then as follows:
 
 ### Client 1
-- As `fileset=/csd3` the client's `/mnt/lustre` provides access to any project directories within `/csd3`, e.g. `/mnt/lustre/proj12 ==> /csd/proj12` but prevents access to projects in `srcp`.
+- As `fileset=/csd3` the client's `/mnt/lustre` provides access to any project directories within `/csd3`, e.g. `/mnt/lustre/proj12` -> `/csd/proj12`, but prevents access to projects in `/srcp`.
 
 Considering access to `/csd3/proj12/`:
-- Because `trusted=true` all client users see the true uid/gids in the filesystem hence permissions (generally) function as if it were a local directory given users/groups are present on both server and client.
+- Because `trusted=true` all client users see the true uid/gids in the filesystem hence permissions generally function as if it were a local directory given users/groups are present on both server and client.
 - Client users `alex` and `andy` have a secondary group (on both server an client) of `proj12` hence get group permissions in the directory.
 - As `admin=false` the `root` user is squashed to the default `squash_uid` and `squash_gid` of 99, i.e. user `nobody` and therefore has no permissions in the directory.
 - The client user `centos` (not defined by `users.yml` but present on both client and server as a default OS user) does not have the correct secondary group and hence cannot access the directory.
@@ -234,7 +234,7 @@ Considering access to `/csd3/proj12/`:
 TODO: test this all again from scratch now I've set the sticky bit!
 
 # Limitations
-Once the cluster is running, changing Lustre configuration is tricky and may require unmounting/remounting clients, or waiting for changes to propagate. Consult the lustre documentation.
+As noted above changing Lustre configuration once the cluster is running may require manual intervention - consult the lustre documentation.
 
 When run, the Ansible will enforce that:
 - No nodemaps other than the ones it defines (and the `default` nodemap) exist
@@ -244,7 +244,8 @@ However it does not currently enforce that:
 - No additional clients ("ranges") are present in the nodemaps it defines
 - No additional routes exist
 - No additional id mappings exist
-All of these should be caught by the automatic diff of Lustre configuration against a known-good config, if defined. However note that if you modify the ansible config to add ranges/routes/idmaps, run ansible, then delete them and run ansible again they **will not** be removed and must be manually removed using lustre commands.
+
+Therefore these must be manually removed using lustre commands if required. However the `verify.yml` playbook can identify any of these issues if a known-good configuration is defined.
 
 # Known Issues
 
