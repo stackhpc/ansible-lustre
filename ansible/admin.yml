@@ -29,9 +29,12 @@
         - csd3
         - srcp
       
-    - name: create project users/groups (fake LDAP)
+    - name: create project owner users/groups (fake LDAP)
       # NB: this is annoying: only needed because ansible's file module (below) needs user/group names, not uid/gids
-      import_tasks: project-users.yml
+      include_tasks: create-users.yml
+      vars:
+        users: "{{ projects[item].users }}"
+      loop: "{{ projects.keys() }}"
 
     - name: create project directories in lustre fs
       file:

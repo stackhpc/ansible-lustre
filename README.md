@@ -185,49 +185,53 @@ Multi-hop paths require routes to be defined along the way: e.g. if node "A" in 
 
 ## Project access
 
-It is not necessarily obvious how to use the nodemap functionality, project directory permissions and user setup to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If modifying this configuration note that:
--  While the manual suggests nodemap changes will propagate in ~10 seconds, in reality it was found necessary to unmount and remount the filesystem to get the changes to apply, although this was nearly instantaneous and proved robust.
-- Removal of idmaps etc will require manual intervention - see [Limitations](#limitations)
-- The real lustre fileystem configuration (defined in `group_vars/all/yml:projects`) is as follows:
+It is not necessarily obvious how to use the nodemap functionality, project directory permissions and user setup to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If experimenting with configuration note that:
+- While the manual says nodemap changes propagate in ~10 seconds, it was found necessary to unmount and remount the filesystem to get changes to apply, although this was nearly instantaneous and proved robust.
+- Removal of idmaps etc will require manual intervention using lustre commands - see [Limitations](#limitations)
+- Reducing the caching of user/group upcalls from the default 20 minutes to 1 second is recommended using:
 
-| Project path | Owner  | Group  | Mode       |
-| ------------ | ------ | ------ | ---------- |
-| /csd3/proj12 | proj12 | proj12 | drwxrwx--T |
-| /srcp/proj3  | proj3  | proj3  | drwxrwx--T |
+        sudo lctl set_param mdt.*.identity_expire=1
 
-Client lustre configurations (defined by `group_vars/client_net*.yml:lustre`) and users (defined by `group_vars/client_net*.yml:users`) are then as follows:
+- Whether modifying configuration using ansible or lustre commands, running the `verify.yml` playbook and reviewing `ansible/lustre-configs-live/lustre-storage-nodenet.conf` is a convenient way to check the actual lustre configuration.
+
+Firstly, note that the actual lustre fileystem configuration (defined in `group_vars/all/yml:projects`) is as follows:
+- `/csd3/proj12`: owner=`proj12` group=`proj12` mode=`drwxrwx--T`
+- `/srcp/proj3`: owner=`proj3` group=`proj3` mode=`drwxrwx--T`
+
+This can be seen from the `admin` client which has both the `trusted` and `admin` properties set so its users (including `root`) can see the real filesystem ids.
+
+Secondly, note that `users.yml` ensures the "project owner" users/groups (e.g. `proj12`) and "project member" user/groups (e.g. `proj12-member`) are present on both the server and clients 1-3:
+- For the server and client1, this models LDAP as mentioned above.
+- For the other clients these users/groups would have to be configured in some other way on both the client and the server, but uid/gids could differ between client and server.
+- Users/groups do not necessarily need to be present on clients which do not mount the associated project directory (e.g. client3 does not need `proj12` and `proj12-member`) - this is done here purely to simplify the logic and configuration.
+- `admin.yml` also ensures these users/groups are present on the `admin` client; this is not a lustre requirement but is done here because ansible uses user/group names rather than uid/gids when creating the project directories.
+
+The client configurations are then as follows:
 
 ### Client 1
-All users below and their associated groups are present on both server and client, as are the "project owner" and "project member" users/groups. In reality this would be due to LDAP, but here this is faked using `users.yml`.
-- As the `fileset` is `/csd3` the client's `/mnt/lustre` provides access to any project directories within `/csd3`, e.g. `/mnt/lustre/proj12` accesses `/csd/proj12`, but cannot access projects in `srcp`. The below considers access to the example project `/csd3/proj12/`.
-- Client users `alex` and `andy`: Because `trusted=true` the client sees the true uid/gids in the filesystem, hence permissions (generally) function as if it were a local directory. These users have user-private groups and a first secondary group of the project owner group, i.e. `proj12`.
-- Client user `root`: This is different because `admin=false`, which means it is squashed to the default `squash_uid` and `squash_gid` of 99, i.e. `nobody`. It therefore has no permissions in the directory.
-- Client user `centos`: This is not defined by `users.yml` but is present on both client and server as a default OS user. While the client's `trusted` flag means it sees the true fileystem identifiers, it does not have `proj12` as a secondary group and therefore cannot access the directory.
+- As `fileset=/csd3` the client's `/mnt/lustre` provides access to any project directories within `/csd3`, e.g. `/mnt/lustre/proj12 ==> /csd/proj12` but prevents access to projects in `srcp`.
+
+Considering access to `/csd3/proj12/`:
+- Because `trusted=true` all client users see the true uid/gids in the filesystem hence permissions (generally) function as if it were a local directory given users/groups are present on both server and client.
+- Client users `alex` and `andy` have a secondary group (on both server an client) of `proj12` hence get group permissions in the directory.
+- As `admin=false` the `root` user is squashed to the default `squash_uid` and `squash_gid` of 99, i.e. user `nobody` and therefore has no permissions in the directory.
+- The client user `centos` (not defined by `users.yml` but present on both client and server as a default OS user) does not have the correct secondary group and hence cannot access the directory.
 
 ### Client 2
-This client is modelled as separate from the server/client1 LDAP. The "project owner" and "project member" users/groups are present on both server and client (using `users.yml`).
-- As the `fileset` is `/csd/proj12` the client only has access to this project (as `/mnt/lustre`).
-- Client users `becky` and `ben` are only present on the client - note that `becky`'s uid/gid of 1102 clash with the server/client1 user `alex`. Again they have a secondary group of the project owner group, i.e. `proj12`. On this client `trusted=false` and instead users are squashed to the project *member* user (`proj12-member`) and groups are squashed to the project *owner* (`proj12`). Note that:
-  1. The group squash defines the group the directory belongs to when viewed by these users, so this *must* be set to be the same as the user's first secondary group.
-  2. All files in the directory appear to these squashed users to be owned by the project member, including those created by client 1 users and therefore (depending on project member permissions) it may be possible for users to modify them.
-- Client user `centos` (also present on the server) is squashed as for becky/ben, but as it does not have a matching secondary group it has no access to the direcory.
-- Client user `root` (obviouisly also present on the server) has a specific `idmap` to map it to the project owner user `proj12` and it therefore has access as if it were the directory owner. Note that root's group is *not* mapped to the project owner group otherwise the group of `/mnt/lustre` appears as `root` to all users, preventing access.
+- As `fileset=/csd3/proj12` the client's `/mnt/lustre` only provides access to this directory.
+- Because `trusted=false` ALL users must be either defined in the `idmap` or will be subject to user/group squashing.
+- The client's root user is mapped to `proj12` which gives it owner permissions in the project directory. It also means the project directory's owner to appears as `root` (rather than the real `proj12`) to all client users. Note the root group is *not* mapped as we want the project directory's group to appear as `proj12`.
+- Users are squashed to `proj12-member` (i.e. a non-owning user) and groups to `proj12` (i.e. the directory's real group). Users therefore do not own the project directory but do match the directory's group.
+- However to actually get the group permissions, client users (e.g. `becky` and `ben`) must also be members of the `proj12` group (on the client). It is not clear why this is necessary, given the group squashing. It is not necessary for the server user they are squashed to (`proj12-member`) to be a member of the appropriate group (`proj12`) on the server.
+- The default OS user `centos` is not a member of `proj12` and hence has no access to the directory.
 
 ### Client 3
-Again this client is modelled as separate from the server/client1 LDAP and the "project owner" and "project member" users/groups are present on both server and client (using `users.yml`).
-- As the `fileset` is `/srcp/proj3` the client only has access to this project (as `/mnt/lustre`).
-- Client users `catrin` and `charlie` are only present on the client - note that `catrin`'s uid/gid of 1102 clashes with server/client1 user `alex` and client2 user `becky`. Again they hae a secondary group of the project owner group, i.e. `proj3` and squashing / permissions of these users work as described for client 2.
-- This client also has a user `datamanager` which has a specific `idmap` to map it to the project owner user `proj3` providing owner-level access. Again, `datamanager`'s group is **not** mapped else this changes the apparent group of the project directory preventing access by other users.
-- The same comments apply to the client user `centos` as made for client 2.
-TODO: describe root.
-
-TODO: note that the users dict is addititive due to config flag (reqd. for lnet setup)
+- As `fileset=/srcp/proj3` the client's `/mnt/lustre` only provides access to this directory.
+- The nodemap and user configuration is exactly comparable to that for client 2, except that the client user `datamanager` (instead of `root`) is mapped to the project owner `proj3`. Note this user only exists on the client.
+- Behaviour for demo users `cartrin` and `charlie` and the default OS user `centos` is exacly analogous to client 2.
+- As `root` is not mapped it should be squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it does not apppear necessary for it to be in the `proj3` group to get group permissions.
 
 TODO: test this all again from scratch now I've set the sticky bit!
-
-TODO: all the stuff re. 2ndary groups may be wrong! Think it is actually - so need to map user's group into correct one UNLESS trusted=true
-
-TODO: note that if changing this, you can use validate.yml to easily check system config
 
 # Limitations
 Once the cluster is running, changing Lustre configuration is tricky and may require unmounting/remounting clients, or waiting for changes to propagate. Consult the lustre documentation.

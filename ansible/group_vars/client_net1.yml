@@ -1,6 +1,7 @@
 lustre:
   trusted: true
   fileset: "/csd3"
+  mount_test: "/proj12" # ignore this, just specifies which directory mount-test.yml should examine
 users:
   alex:
     guid: 1102

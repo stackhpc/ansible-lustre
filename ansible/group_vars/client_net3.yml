@@ -2,13 +2,9 @@ lustre:
   trusted: false
   fileset: "/srcp/proj3"
   idmap:
-    - ['uid', "{{ users.datamanager.guid }}", "{{ projects.proj3.owner_guid }}" ]
-    #- ['gid', "{{ users.datamanager.guid }}", "{{ projects.proj3.owner_guid }}" ] # don't do this, else group of /mnt/lustre appears as "datamanager" rather than "proj3" to all other client users
-    #- ['gid', "{{ users.root.guid }}", "{{ users.nobody.guid }}" ] # apparently ignored presumably due to setting squash_gid
-    #- ['uid', "{{ users.root.guid }}", "{{ users.nobody.guid }}" ] # apparently ignored presumably due to setting squash_uid
-  squash_gid: "{{ projects.proj3.owner_guid }}"
-  #squash_gid: "{{ projects.proj3.member_guid }}" # don't do this - 2ndary group alone isn't enough
-  squash_uid: "{{ projects.proj3.member_guid }}"
+    - ['uid', "{{ users.datamanager.guid }}", "{{ projects.proj3.users.proj3.guid }}" ]
+  squash_gid: "{{ projects.proj3.users['proj3'].guid }}"
+  squash_uid: "{{ projects.proj3.users['proj3-member'].guid }}"
 users:
   datamanager:
     guid: 2999

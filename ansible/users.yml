@@ -4,10 +4,13 @@
   become: true
   tasks:
     - name: create project owner users/groups
-      import_tasks: project-users.yml
+      include_tasks: create-users.yml
+      vars:
+        users: "{{ projects[item].users }}"
+      loop: "{{ projects.keys() }}"
 
-    - name: create project user user/groups
-      import_tasks: test-users.yml
+    - name: create demo user user/groups
+      include_tasks: create-users.yml
       vars:
         users: "{{ hostvars['lustre-client1']['users'] }}"
 
@@ -17,9 +20,12 @@
   become: true
   tasks:
     - name: create project owner users/groups
-      import_tasks: project-users.yml
+      include_tasks: create-users.yml
+      vars:
+        users: "{{ projects[item].users }}"
+      loop: "{{ projects.keys() }}"
 
-    - name: create project user user/groups
-      import_tasks: test-users.yml
+    - name: create demo user user/groups
+      include_tasks: create-users.yml
       
     

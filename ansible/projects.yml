@@ -120,3 +120,6 @@
           mode: 0600
       
       when: "lustre.ssk_flavor != 'null'"
+
+# TODO: ensure group upcall is default:
+# sudo lctl set_param mdt.test_fs1-MDT0000.identity_upcall=/usr/sbin/l_getidentity

@@ -1,0 +1,23 @@
+---
+
+- name: create groups
+  group:
+    name: "{{ name }}"
+    gid: "{{ users[name].guid }}"
+    state: present
+  loop: "{{ users.keys() }}"
+  loop_control:
+    loop_var: name
+  
+- name: create users
+  user:
+    name: "{{ name }}"
+    uid: "{{ users[name].guid }}"
+    group: "{{ name }}"
+    groups: "{{ users[name].groups }}"
+    state: present
+    remove: "yes"
+  loop: "{{ users.keys() }}"
+  loop_control:
+    loop_var: name
+  
