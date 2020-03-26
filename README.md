@@ -42,24 +42,24 @@ In addition this repo provides two extra tools to help prevent misconfiguration:
 - `lnet-test.yml` runs `lnet ping` to check connectivity is present between clients and server, and is not present between clients in different lnets.
 - `verify.yml` exports lustre configuration to files on the control host, then automatically diffs them against a previous known-good configuation (if available).
 
-# Projects and Users
+## Projects, Clients and Users
 
 For demonstration purposes, the `test_fs` lustre fileystem contains two root directories, `/csd3` and `/srcp` and two "project directories":
 - `/csd3/proj12` mounted by `client1` and `client2`
 - `/srcp/proj3` mounted only by `client3`
-Project directories are owned by a "project owner" user and group which has the same name as the project.
+Project directories are owned by a "project owner" user and group of the same name as the project, and given permissions `ug=rwx,+t`.
 
 The Lustre configurations applied to the clients model different access scenarios:
-- `client1` models a client on the CSD3 low-latency network which shares LDAP with the server and has full access to the filesystem (i.e. as controlled by normalLinux permissions), except that the client's root user is not privileged.
+- `client1` models a client on the CSD3 low-latency network which shares LDAP with the server and has full access to the filesystem (i.e. as controlled by normal Linux permissions), except that the client's root user is not privileged.
 - `client2` models a client with access to the same project, but which does not share LDAP and has restricted access with the client's root user acting as the project owner.
 - `client3` models a client in a isolated SRDP project, which does not share LDAP and has restricted access with a specific `datamanager` user acting as the project owner.
 
-Note that no LDAP service is actually provided here and all users are defined/configured by Ansible. The following "project users" are set up to permit testing the above access control scenarios:
+No LDAP service is actually provided here and all users are defined/configured by Ansible. The following demonstration users are set up to permit testing the above access control scenarios:
 - `client1`: `andy` and `alex`
 - `client2`: `becky` and `ben`
 - `client3`: `catrin` and `charlie`
 
-For details of how these aspects are configured, see [Nodemaps](nodemaps) below.
+For details of how these aspects are configured, see [Configuration](configuration) below.
 
 # Usage
 The below assumes deployment on `vss` from `ilab-gate`.
@@ -94,7 +94,7 @@ Now use Terraform to create the infrastructure:
     pip install -U -r requirements.txt
     ansible-galaxy install -r requirements.yml
 
-## Install and configure Lustre and projects:
+## Install and configure Lustre and projects
 In the `ansible/` directory With the virtualenv activated as above, run:
 
     ansible-playbook -i inventory main.yml
@@ -127,7 +127,7 @@ For routers, note the relevant IP is the one for the lower-numbered network it i
 This section explains how the Lustre configuration described above is defined here.
 
 ## Roles for nodes
-This is defined by the groups in the inventory template at `terraform/modules/cluster/inventory.tpl` and should be fairly obvious.
+This is defined by the groups in the inventory template at `terraform/modules/cluster/inventory.tpl`.
 
 ## Lnets and Lnet routes
 These are defined by `ansible/group_vars`:
@@ -135,7 +135,7 @@ These are defined by `ansible/group_vars`:
 - `lnet_router_tcpX_to_tcpY`: These define the 2nd interface for routers and also set the routing enabled flag. So only routers need to be added to these groups. Note that the convention here is that `eth0` goes on the lower-numbered network, and that this is the side ansible uses to configure router nodes.
 - `lnet_tcpX_from_tcpY`: These define routes, so any nodes (clients, storage or routers) which need to access nodes on other networks need to be in one or more of these groups. In the routes `dict` in these groups there should be one entry, with the key defining the "end" network (matching the "X" in the filename) and a value defining the gateway. Note a dict is used with `hash_behaviour = merge` set in `ansible/ansible.cfg` so that nodes can be put in more than one routing group, and will end up with multiple entries in their `routes` var. In the example here this is needed for the storage server, which requires routes to both `tcp2` and `tcp3`.
 
-These groups are then used to generate a configuration file for each node using the `ansible/lnet.conf.j2` template.
+These groups are then used to generate a configuration file for each node using the `ansible/lnet.conf.j2` template as part of the server/router/client role, and then imported to lustre.
 
 Additional general information about how lnet routes work is provided under [Lustre networks](lustre-networks) below.
 
@@ -153,15 +153,42 @@ The key/value pairs in the `lustre` mapping function essentially as described in
     - client uid/gid to map to ...
     - ... uid/gid on server
 
-Note that despite the very direct mapping to Lustre's concepts, the config demoed here shows that using Ansible varibles can make it more user-friendly, e.g. automatically looking up uids from usernames etc.
+This configuration follows Lustre's concepts/terminology very closely, although the use of Ansible makes it somewhat more user-friendly as for example uids can be looked up from usernames.
 
-## Details of demonstration project permissions
+## Users
+The demo users `andy` etc are defined for each client individually in `group_vars/client_net*.yml:users`. These users are created on the appropriate clients by `users.yml`. This also creates the client1 users on the server to fake shared LDAP. While the lustre documentation specifically [states](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) that uid and gids are required to be the same "on all clients" this is not to be the case when clients are mounting isolated directories as here.
 
-While the nodemap functionality described above matches lustre's features and terminology, it is not necessarily clear how to use these features to achieve a particular outcome. In addition, the lustre documentation specifically [states](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) that uid and gids are required to be the same "on all clients". However this is not necessarily the where clients are mounting isolated directories. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If modifying this configuration note that:
--  While he manual suggests nodemap changes will propagate in ~10 seconds, in reality it was found necessary to unmount and remount the filesystem to get the changes to apply, although this was nearly instantaneous and proved robust.
-- Removal of features may require manual intervention - see [Limitations](#limitations)
+Note that `group_vars/all.yml` also defines `root` and `nobody` users - this is purely to allow them to be referred to in the client nodemap setup (and as for lnet setup the combination of `user` mappings from the `all` and client group_vars files relies on having `hash_behaviour = merge` in ansible's configuration).
 
-Firstly, note that the real lustre fileystem configuration (defined in `group_vars/all/yml:projects`) is as follows:
+The project owner user/groups are defined by `group_vars/all.yml:projects` and are also created by `users.yml`. For simplicity, these are the same on all clients and the server although strictly client2 does not need the `proj12` user/group, etc.
+
+## Projects
+Project directories are defined by `group_vars/all.yml:projects`. The `root` key is prepended to the project name to give the project's path in the lustre filesystem.
+
+# Futher Discussion
+This section provides extended context and discussion of configuration and behaviour.
+
+# Lustre networks
+There are essentially 3 aspects to be configured:
+- All nodes must have an interface (e.g. eth0) on an Lnet (e.g. tcp1): Note that an Lnet itself is only actually defined by the set of nodes with an interface on it - there is no "stand-alone" definition of  an LNET.
+- Routers also need an interface onto a 2nd Lnet, and a routing enabled flag set on.
+- Nodes which need to be able to reach nodes on other networks need routes to be defined. Note that this includes any routers which need to route messages to networks they are not directly connected to.
+
+A few aspects of routes may not be are not obvious:
+- Routes need to be set up bi-directionally, and asymmetric routes are an advanced feature not recommended for normal use by the documentation.
+- Routes are defined *for* a specific node, but *to* a whole network. This means that you can enable e.g. a client in net3 to reach storage in net1, without the reverse route enabling a client in net1 to access the client in net3 (because the reverse route is only defined for storage1).
+- Routes are defined in terms of the "end" network and the gateway to access to get there. The gateway is the router which provides the "closest" hop towards the end network.
+Multi-hop paths require routes to be defined along the way: e.g. if node "A" in network 1 needs to go through networks 2 and 3 to reach node "B" in network 4 then:
+- node "A" needs a route to 4 to be defined using the gateway router from 1-2.
+- The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
+- The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
+
+## Project access
+
+It is not necessarily obvious how to use the nodemap functionality, project directory permissions and user setup to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If modifying this configuration note that:
+-  While the manual suggests nodemap changes will propagate in ~10 seconds, in reality it was found necessary to unmount and remount the filesystem to get the changes to apply, although this was nearly instantaneous and proved robust.
+- Removal of idmaps etc will require manual intervention - see [Limitations](#limitations)
+- The real lustre fileystem configuration (defined in `group_vars/all/yml:projects`) is as follows:
 
 | Project path | Owner  | Group  | Mode       |
 | ------------ | ------ | ------ | ---------- |
@@ -200,6 +227,8 @@ TODO: test this all again from scratch now I've set the sticky bit!
 
 TODO: all the stuff re. 2ndary groups may be wrong! Think it is actually - so need to map user's group into correct one UNLESS trusted=true
 
+TODO: note that if changing this, you can use validate.yml to easily check system config
+
 # Limitations
 Once the cluster is running, changing Lustre configuration is tricky and may require unmounting/remounting clients, or waiting for changes to propagate. Consult the lustre documentation.
 
@@ -220,44 +249,22 @@ All of these should be caught by the automatic diff of Lustre configuration agai
   - Timeout waiting for priviledge escalation prompt
   - Installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
   - `lnet-test.yml` (possibly server not ready?)
-- Shared-key security (ssk) does not currently work due to
+- Shared-key security (ssk) does not currently work due to:
   - A bug in how Lustre handles `sudo` for ssk.
-  - Reverse DNS lookups (required for ssk) not working in the VSS environement as configured here.
-  - Removed key transfer code broken by refactor
-  
+  - Reverse DNS lookups (required for ssk) not working in the VSS environment as configured here - fixing this is tricky due to the (OS) network setup.  
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
 
 - The "start lustre exporter" step of monitoring.yml sometimes gets stuck, can't work out why yet. Rerun the playbook (possibly several times) until past this.
-- When running projects.yml, nodemap configuration parameters will always show as changed, even if they actually aren't due to lustre CLI limitations.
+- When running projects.yml, nodemap configuration parameters will always show as changed, even if they actually aren't. This is due to lustre CLI limitations.
 
-# Lustre networks
-There are essentially 3 aspects to be configured:
-- All nodes must have an interface (e.g. eth0) on an Lnet (e.g. tcp1): Note that an Lnet itself is only actually defined by the set of nodes with an interface on it - there is no "stand-alone" definition of  an LNET.
-- Routers also need an interface onto a 2nd Lnet, and a routing enabled flag set on.
-- Nodes which need to be able to reach nodes on other networks need routes to be defined. Note that this includes any routers which need to route messages to networks they are not directly connected to.
+# Potential next steps
+Suggested routes for development are:
+- Extend the export functionality provided by `tools/lustre-tools` to provide an `import` function which would "diff" the required state against the live state, make all necessary changes, and output the diff to allow ansible's `changed_when` to be accurate. This would fix the [limitations](#Limitations) in controlling lustre from ansible and the incorrect reporting of nodemap changes.
+- In an environment where the reverse DNS lookup works correctly (i.e. `nslookup <ip_addr>` returns a name), work around the ssk sudo bug (e.g. by logging in as root when mounting) and test ssk functionality/performance. (Note current `authorized_keys` entries for `root` prevent running commands.)
+- Add/use an `eth0_address` variable for hosts in addition to `ansible_host` to protect against unusual cases of the latter.
+- Use [ganesha](https://github.com/nfs-ganesha/nfs-ganesha/wiki) running on the tenant router to re-export the lustre filesystem over NFS for the tenant's clients. This would remove the need for the clients to be running lustre.
+- Update the lustre Prometheus exporter to use `https://github.com/HewlettPackard/lustre_exporter/pull/148` to provide OST data in 2.12 (note this PR currently doesn't compile).
 
-A few aspects of routes may not be are not obvious:
-- Routes need to be set up bi-directionally, and asymmetric routes are an advanced feature not recommended for normal use by the documentation.
-- Routes are defined *for* a specific node, but *to* a whole network. This means that you can enable e.g. a client in net3 to reach storage in net1, without the reverse route enabling a client in net1 to access the client in net3 (because the reverse route is only defined for storage1).
-- Routes are defined in terms of the "end" network and the gateway to access to get there. The gateway is the router which provides the "closest" hop towards the end network.
-Multi-hop paths require routes to be defined along the way: e.g. if node "A" in network 1 needs to go through networks 2 and 3 to reach node "B" in network 4 then:
-- node "A" needs a route to 4 to be defined using the gateway router from 1-2.
-- The router forming the 1-2 gateway needs a route to 4 to be defined using a gateway from 2-3.
-- The router forming the 2-3 gateway needs a route to 4 to be defined using a gateway from 3-4.
-
-# TODOs
-Items listed here may be useful but are not planned for delivery in current phase.
-- Shared key functionality:
-    - Fix key distribution code.
-    - Test whether kernel key bug exists on current version.
-    - Test workarounds for ssk kernel key issue: Could log in as root rather than using sudo when mounting. Note current `authorized_keys` entries for `root` prevent running commands.
-    - Get reverse DNS lookup working (e.g. `nslookup <ip_addr>`) - will be difficult given current network config. See https://jira.whamcloud.com/browse/LU-10593.
-- Add option to control whether unknown nodemaps (and potentially other "externally"-configured nodemap options, e.g. additional ranges?) are deleted or not.
-- Extend lnet.py and nodemap.py tools with an `import` command to provide full control. Should do an (object-based) diff against live config, change only necessary items and output diff so stdout can drive ansible's `changed_when`.
-- Use an `eth0_address` variable in addition to `ansible_host` to protect against cases where latter is odd.
-- Try using ganesha on the lnet routers: mount lustre, then re-export as nfs for clients.
-- Speed tests: various ssk levels, ganesha etc.
-- Update lustre Prometheus exporter to use `https://github.com/HewlettPackard/lustre_exporter/pull/148` for OST data in 2.12 (note PR currently doesn't compile).
 ---
 
 <b id="f1">1.</b> The lustre documentation for the [Fileset Feature](http://doc.lustre.org/lustre_manual.xhtml#SystemConfigurationUtilities.fileset) is confusing/incorrect as it appears to be describing **submounts** which involve the client specifying a path in the filesystem, and are hence voluntary, with **filesets** where the client only specifies the filesystem to mount and the server only exports
