@@ -1,12 +1,13 @@
 - name: Setup clients
   hosts: lustre_client:!admin_client
   gather_facts: false
+  become: true
   tasks:
     - import_role:
         name: common # duplicated here in case this playbook is broken out separately
+      become: false
     - import_role:
         name: client
-      become: true
   
     - name: mount lustre project subdirectory
     # NB: actual subdir may be determined by fileset on client's nodemap

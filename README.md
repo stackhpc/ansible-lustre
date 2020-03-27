@@ -111,7 +111,7 @@ Optionally, monitoring may be then set up by running:
 
 where `<PASSWORD>` should be replaced with a password of your choice.
 
-The `lustre-storage` node then hosts Prometheus at port 9090 and Graphana (username="admin", password as chosen) at port 3000.
+The `lustre-storage` node (see `ssh_proxy` in `inventory` for IP) then hosts Prometheus at port 9090 and Graphana (username="admin", password as chosen) at port 3000.
 
 ## Logging into nodes
 
@@ -229,9 +229,7 @@ Considering access to `/csd3/proj12/`:
 - As `fileset=/srcp/proj3` the client's `/mnt/lustre` only provides access to this directory.
 - The nodemap and user configuration is exactly comparable to that for client 2, except that the client user `datamanager` (instead of `root`) is mapped to the project owner `proj3`. Note this user only exists on the client.
 - Behaviour for demo users `cartrin` and `charlie` and the default OS user `centos` is exacly analogous to client 2.
-- As `root` is not mapped it should be squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it does not apppear necessary for it to be in the `proj3` group to get group permissions.
-
-TODO: test this all again from scratch now I've set the sticky bit!
+- As `root` is not idmapped it is squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it has group access without needing to have `proj3` as a secondary group..
 
 # Limitations
 As noted above changing Lustre configuration once the cluster is running may require manual intervention - consult the lustre documentation.
@@ -250,9 +248,10 @@ Therefore these must be manually removed using lustre commands if required. Howe
 # Known Issues
 
 - If you see any of the below errors from Ansible just rerun the Ansible command:
+  - Authenticity of host cannot be established
   - Timeout waiting for priviledge escalation prompt
-  - Installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
-  - `lnet-test.yml` (possibly server not ready?)
+  - Failures during installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
+  - Failures of `lnet-test.yml` (possibly server not ready?) - obviously repeated failures are bad
 - Shared-key security (ssk) does not currently work due to:
   - A bug in how Lustre handles `sudo` for ssk.
   - Reverse DNS lookups (required for ssk) not working in the VSS environment as configured here - fixing this is tricky due to the (OS) network setup.  
