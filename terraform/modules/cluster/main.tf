@@ -39,6 +39,7 @@ resource "openstack_compute_instance_v2" "client1" {
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
+  depends_on = [openstack_networking_subnet_v2.net1]
 }
 
 resource "openstack_compute_instance_v2" "admin" {
@@ -50,6 +51,7 @@ resource "openstack_compute_instance_v2" "admin" {
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
+  depends_on = [openstack_networking_subnet_v2.net1]
 }
 
 # --- net 2 ---
@@ -79,6 +81,7 @@ resource "openstack_compute_instance_v2" "client2" {
   network {
     uuid = openstack_networking_network_v2.net2.id
   }
+  depends_on = [openstack_networking_subnet_v2.net2]
 }
 
 
@@ -95,6 +98,7 @@ resource "openstack_compute_instance_v2" "lnet2" {
   network {
     uuid = openstack_networking_network_v2.net2.id
   }
+  depends_on = [openstack_networking_subnet_v2.net2]
 }
 
 
@@ -125,6 +129,7 @@ resource "openstack_compute_instance_v2" "client3" {
   network {
     uuid = openstack_networking_network_v2.net3.id
   }
+  depends_on = [openstack_networking_subnet_v2.net3]
 }
 
 resource "openstack_compute_instance_v2" "lnet3" {
@@ -141,6 +146,7 @@ resource "openstack_compute_instance_v2" "lnet3" {
     uuid = openstack_networking_network_v2.net3.id
   }
   user_data = "#!/usr/bin/bash\nsudo ip route add 192.168.41.0/24 via 192.168.42.1\necho 192.168.41.0/24 via 192.168.42.1 > /etc/sysconfig/network-scripts/route-eth0"
+  depends_on = [openstack_networking_subnet_v2.net3]
 }
 
 
@@ -154,6 +160,7 @@ resource "openstack_compute_instance_v2" "lustre_server" {
   network {
     uuid = openstack_networking_network_v2.net1.id
   }
+  depends_on = [openstack_networking_subnet_v2.net1]
 }
 
 resource "openstack_networking_floatingip_v2" "fip_1" {

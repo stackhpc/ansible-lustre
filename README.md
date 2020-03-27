@@ -249,7 +249,6 @@ Therefore these must be manually removed using lustre commands if required. Howe
 
 # Known Issues
 
-- Terraform may need to be run twice due to errors like `"Network <id> requires a subnet in order to boot instances on."`
 - If you see any of the below errors from Ansible just rerun the Ansible command:
   - Timeout waiting for priviledge escalation prompt
   - Installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
