@@ -4,13 +4,15 @@
     port: 22
     state: started
     timeout: 360
-  delegate_to: "localhost"
+  delegate_to: localhost
+  run_once: true
 
 - name: Scan for proxy's SSH keys
   command: "ssh-keyscan -t rsa {{ ssh_proxy }}"
   register: keyscan_results
   changed_when: False
-  delegate_to: "localhost"
+  delegate_to: localhost
+  run_once: true
 
 - name: Ensure proxy in SSH known hosts
   blockinfile:
@@ -21,13 +23,14 @@
     create: true
     marker: "# {mark} MANAGED BLOCK FOR OpenHPC.proxy.{{ ssh_proxy }}"
     path: "~/.ssh/known_hosts"
-  delegate_to: "localhost"
+  delegate_to: localhost
+  run_once: true
 
 - name: Scan for hosts' SSH keys
   command: "ssh {{ ansible_user }}@{{ ssh_proxy }} ssh-keyscan -t rsa {{ ansible_host }}"
   register: keyscan_results
   changed_when: False
-  delegate_to: "localhost"
+  delegate_to: localhost
 
 - name: Ensure hosts are in SSH known hosts
   blockinfile:
