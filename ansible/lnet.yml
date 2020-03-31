@@ -11,9 +11,11 @@
     name: lnet
     state: started
     enabled: true
-- name: Import lnet conf
-  command: "lnetctl import < /etc/lnet.conf"
+- name: Export existing lnet conf
+  command: "lnetctl export /etc/lnet.conf.old"
+- name: Delete existing lnet conf
+  command: "lnetctl import --del /etc/lnet.conf.old"
+  ignore_errors: yes # will get errors from exported non-deletable bits like "peer ni"
+- name: Import new lnet conf
+  command: "lnetctl import /etc/lnet.conf"
   
-# TODO: this is a bit half-hearted as will only add, not delete
-#       could use lnetctl route show  and lnetctl del --net --gateway to delete stuff
-# TODO: Add check that running config matches the file

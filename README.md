@@ -235,22 +235,24 @@ Considering access to `/csd3/proj12/`:
 As noted above changing Lustre configuration once the cluster is running may require manual intervention - consult the lustre documentation.
 
 When run, the Ansible will enforce that:
+- Only the automatically-defined routes are present
 - No nodemaps other than the ones it defines (and the `default` nodemap) exist
 - All parameters on those nodemaps match the Ansible configuration
 
 However it does not currently enforce that:
 - No additional clients ("ranges") are present in the nodemaps it defines
-- No additional routes exist
 - No additional id mappings exist
 
-Therefore these must be manually removed using lustre commands if required. However the `verify.yml` playbook can identify any of these issues if a known-good configuration is defined.
+In any of these cases it may be necessary to remove configuration manually using lustre commands. Note that the `verify.yml` playbook can identify these issues if a known-good configuration is defined.
 
 # Known Issues
 
+- If ssh keys change you will need to manually confirm connection
 - If you see any of the below errors from Ansible just rerun the Ansible command:
-  - Authenticity of host cannot be established
+  - Authenticity of host cannot be established (may require accepting fingerprint)
   - Timeout waiting for priviledge escalation prompt
   - Failures during installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
+  - Failure to mount lustre filesystem on clients
   - Failures of `lnet-test.yml` (possibly server not ready?) - obviously repeated failures are bad
 - Shared-key security (ssk) does not currently work due to:
   - A bug in how Lustre handles `sudo` for ssk.

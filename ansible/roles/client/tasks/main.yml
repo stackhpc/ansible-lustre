@@ -40,7 +40,6 @@
     state: permissive
 - name: configure and enable lnet
   import_tasks: lnet.yml
-# TODO: lnet-test
 
 - name: raise client GSS key debug level
   command:
