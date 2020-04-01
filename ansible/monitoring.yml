@@ -1,3 +1,10 @@
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - fail:
+        msg: 'graphana password is required: ansible-playbook -i inventory monitoring.yml -e "grafana_password=<PASSWORD>"'
+      when: "grafana_password is not defined"
+
 - name: Deploy node_exporter
   hosts: all
   gather_facts: true # else it breaks
@@ -33,7 +40,7 @@
       # TODO: need to make this start on boot
       command: '{{ lustre_exporter_cmd[item] }}'
       loop: "{{ lustre_exporter_cmd.keys() | intersect(group_names) }}"
-      when: "lustre_exporter_running.stdout != lustre_exporter_cmd[item]"
+      when: "lustre_exporter_running.stdout == ''"
       # Notes:
       # 1. Just rerunning the command if its already running fails with  `bind: address already in use`.
       # 2. This approach shows a skip rather than an ok if command was already running, but it will
