@@ -165,7 +165,7 @@ The project owner and project member user/groups are defined by `group_vars/all.
 ## Projects
 Project directories are defined by `group_vars/all.yml:projects`. The `root` key is prepended to the project name to give the project's path in the lustre filesystem.
 
-# Futher Discussion
+# Further Discussion
 This section provides extended context and discussion of configuration and behaviour.
 
 # Lustre networks
@@ -228,7 +228,7 @@ Considering access to `/csd3/proj12/`:
 ### Client 3
 - As `fileset=/srcp/proj3` the client's `/mnt/lustre` only provides access to this directory.
 - The nodemap and user configuration is exactly comparable to that for client 2, except that the client user `datamanager` (instead of `root`) is mapped to the project owner `proj3`. Note this user only exists on the client.
-- Behaviour for demo users `cartrin` and `charlie` and the default OS user `centos` is exacly analogous to client 2.
+- Behaviour for demo users `catrin` and `charlie` and the default OS user `centos` is exacly analogous to client 2.
 - As `root` is not idmapped it is squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it has group access without needing to have `proj3` as a secondary group..
 
 # Limitations
