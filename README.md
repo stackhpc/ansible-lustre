@@ -259,7 +259,6 @@ In any of these cases it may be necessary to remove configuration manually using
   - Reverse DNS lookups (required for ssk) not working in the VSS environment as configured here - fixing this is tricky due to the (OS) network setup.  
   Therefore at present `group_vars/all.yml:ssk_flavor` should be set to `'null'` to disable this.
 
-- The "start lustre exporter" step of monitoring.yml sometimes gets stuck, can't work out why yet. Rerun the playbook (possibly several times) until past this.
 - When running projects.yml, nodemap configuration parameters will always show as changed, even if they actually aren't. This is due to lustre CLI limitations.
 
 # Potential next steps

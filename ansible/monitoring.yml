@@ -19,10 +19,10 @@
   gather_facts: false
   vars:
     lustre_exporter_binary: "/usr/local/bin/lustre_exporter/lustre_exporter"
-    lustre_exporter_cmd:
-      lustre_server: "{{ lustre_exporter_binary }} --collector.client=disabled"
-      lustre_client: "{{ lustre_exporter_binary }} --collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
-      lustre_router: "{{ lustre_exporter_binary }} --collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+    lustre_exporter_flags:
+      lustre_server: "--collector.client=disabled"
+      lustre_client: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
+      lustre_router: "--collector.ost=disabled --collector.mdt=disabled --collector.mgs=disabled --collector.mds=disabled"
   tasks:
     - name: copy lustre exporter binary
       copy:
@@ -38,8 +38,8 @@
     
     - name: start lustre exporter
       # TODO: need to make this start on boot
-      command: '{{ lustre_exporter_cmd[item] }}'
-      loop: "{{ lustre_exporter_cmd.keys() | intersect(group_names) }}"
+      shell: "nohup {{ lustre_exporter_binary }} {{ lustre_exporter_flags[item] }} </dev/null >/dev/null 2>&1 &"
+      loop: "{{ lustre_exporter_flags.keys() | intersect(group_names) }}"
       when: "lustre_exporter_running.stdout == ''"
       # Notes:
       # 1. Just rerunning the command if its already running fails with  `bind: address already in use`.
