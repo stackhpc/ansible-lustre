@@ -1,13 +1,15 @@
 #!/usr/bin/env python
-""" Export or lustre network and route information. Note sudo rights are required.
+""" Export lustre network and route information. Note sudo rights are required.
 
     Usage:
         lnet.py export [FILE]
 
+    NB: Root privileges will be required.
+
     Export lnet configuration from the live system or from the specified yaml file.
 
     The data output is lnet and route information, similar to that from `lnetctl export` {1} but without
-    transient info such as stats. Output is yaml format, suitable for `lnetctl import` {2}. Lists and
+    transient info such as statistics. Output is yaml format, suitable for `lnetctl import` {2}. Lists and
     mappings in the output are sorted to ensure predictable ordering.
 
     Notes

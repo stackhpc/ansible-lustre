@@ -1,8 +1,8 @@
 Tools for working with lustre configuration information.
 
-Very much a work in progress. At the moment only command-line usage is really supported, all names should be considered subject to change.
+Under development - only command-line usage is supported, all python names should be considered internal and subject to change.
 
-Installation:
+# Installation:
 
 ```shell
 sudo yum install -y git epel-release
@@ -16,3 +16,7 @@ virtualenv .venv
 pip install -U pip
 pip install -U -r requirements.txt
 ```
+
+# Usage
+- See `nodemap.py` for controlling nodemap configuration.
+- See `lnet.py` for exporting lnet and route configuration.

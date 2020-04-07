@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Export live lustre nodemap information as yaml.
+""" Control lustre nodemap configuration.
 
     Usage:
         nodemap.py export
@@ -8,13 +8,13 @@
         nodemap.py --help
         nodemap.py --version
 
-    NB: You may need to use sudo.
+    NB: Root privileges will be required.
 
     The first form outputs the live lustre nodemap configuration to stdout.
     The second form outputs the changes needed to alter the live nodemap configuration to that defined in the file, or else from config A to config B.
     The third form imports the given configuration, and outputs the changes made to the live configuration.
     
-    Output from export and configuration files are YAML, with:
+    Both export output and configuration files are YAML, with:
     - Simple values (i.e. which aren't themselves mappings or lists) being only ints or strings.
     - Lists and mappings sorted to ensure predictable output.
 
@@ -26,10 +26,9 @@
         nodemap.py import FILE_A FILE_B
     In this case it will display (but not actually run) the commands needed to change the config from FILE_A to FILE_B.
 
-    TODO: YAML diff output for [] e.g. ranges, could be better.
+    TODO: Improve (YAML) diff output for [] e.g. ranges.
     TODO: provide stdin for import?
     TODO: note restrictions on NID ranges for import?
-
 """
 
 # internal canonical form for nodemap config is:
