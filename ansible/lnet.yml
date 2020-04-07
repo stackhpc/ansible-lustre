@@ -3,8 +3,8 @@
   #hosts: lustre_client,lustre_router,lustre_server
 - name: Write out lnet config
   template:
-    src: lnet.conf.j2
-    dest: /etc/lnet.conf
+    src: "templates/lnet.conf.j2"
+    dest: "/etc/lnet.conf"
   register: lnetconf
 - name: Ensure lnet is started
   service:
