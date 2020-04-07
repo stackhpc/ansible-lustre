@@ -35,27 +35,27 @@
   tasks:
     - name: export live nodemap config
       script: 'tools/lustre-tools/nodemap.py export'
-      register: nodenet_config
+      register: nodemap_config
       changed_when: false
       become: true
 
     - name: write live config to file
       copy:
-        dest: "lustre-configs-live/{{ inventory_hostname }}-nodenet.conf"
-        content: "{{ nodenet_config.stdout }}"
+        dest: "lustre-configs-live/{{ inventory_hostname }}-nodemap.conf"
+        content: "{{ nodemap_config.stdout }}"
       delegate_to: localhost
 
     - name: check if known-good exists
       stat:
-        path: "{{ playbook_dir }}/lustre-configs-good/{{ inventory_hostname }}-nodenet.conf"
-      register: known_good_nodenet
+        path: "{{ playbook_dir }}/lustre-configs-good/{{ inventory_hostname }}-nodemap.conf"
+      register: known_good_nodemap
       delegate_to: localhost
 
     - name: diff known-good to live config
       command:
-        cmd: "diff lustre-configs-good/{{ inventory_hostname }}-nodenet.conf lustre-configs-live/{{ inventory_hostname }}-nodenet.conf"
+        cmd: "tools/lustre-tools/nodemap.py diff lustre-configs-good/{{ inventory_hostname }}-nodemap.conf lustre-configs-live/{{ inventory_hostname }}-nodemap.conf"
       delegate_to: localhost
       register: diff_nodemap
-      when: known_good_nodenet.stat.exists == true
+      when: known_good_nodemap.stat.exists == true
       failed_when: "diff_nodemap.stdout != '' or diff_nodemap.stderr != ''"
       changed_when: "diff_nodemap.stderr != ''"
