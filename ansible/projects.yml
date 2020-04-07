@@ -4,6 +4,12 @@
   become: true
   tasks:
 
+  - name: create config dir
+    file:
+      path: /etc/lustre
+      owner: root
+      state: directory
+
   - name: load lustre
     command: modprobe lustre
     changed_when: False
@@ -19,81 +25,17 @@
     import_tasks: ssk.yml
     when: "lustre.ssk_flavor != 'null'"
 
-  - name: activate nodemaps
-    shell: "lctl get_param nodemap.* ; lctl nodemap_activate 1; lctl get_param nodemap.* "
-    register: nodemap_activate
-    failed_when: "'nodemap.active=1' not in nodemap_activate.stdout_lines" # for some reason get_param's rc is 5
-    changed_when: "nodemap_activate.stdout_lines == ['nodemap.active=0','nodemap.active=1']"
-    # TODO: this changed_when is a bit hacky
-      
-  - name: add client nodemaps
-    command: "lctl nodemap_add {{ item | replace('-', '_') }}" # TODO: undocumented restrictions in nodeset names: testing shows at least "-" and "." aren't allowed.
-    loop: "{{ groups['lustre_client'] }}"
-    register: nodemap_add
-    failed_when: nodemap_add.rc != 0 and ('existing nodemap name' not in nodemap_add.stderr)
-    changed_when: nodemap_add.rc == 0
+  - name: create nodemap config
+    template:
+      dest: /etc/lustre/nodemaps.yml
+      src: templates/nodemaps.j2
 
-  - name: list all nodemaps
-    shell: "lctl nodemap_info"
-    register: nodemaps
-    changed_when: false
+  - name: apply nodemap config
+    script: 'tools/lustre-tools/nodemap.py import /etc/lustre/nodemaps.yml'
+    register: nodemap_import
+    changed_when: "nodemap_import.stdout | trim != ''"
 
-  - name: remove any non-client nodemaps
-    shell: "lctl nodemap_del {{ item | replace('nodemap.', '') }}"
-    loop: "{{ nodemaps.stdout_lines }}"
-    when: "item | replace('nodemap.', '') not in groups['lustre_client'] | map('replace', '-', '_') | list | union(['default'])"
-
-  - name: add clients to nodemaps
-    command: "lctl nodemap_add_range --name {{ item | replace('-', '_') }} --range {{ hostvars[item]['ansible_host'] }}@{{ hostvars[item]['lnet_eth0_net_type'] }}" # client NID
-    register: nodemap_add_range
-    loop: "{{ groups['lustre_client'] }}"
-    failed_when: "nodemap_add_range.rc != 0 and ('errno: 12' not in nodemap_add_range.stderr)"
-    changed_when: nodemap_add_range.rc == 0
-    # TODO: remove any incorrect ranges
-
-  - name: configure client nodemap filesets
-    command: "lctl nodemap_set_fileset --name {{ item | replace('-', '_') }} --fileset '{{ hostvars[item].lustre.fileset }}'" # NB can't check this is a valid path here!
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: need to make permanent too - see docs
-    # TODO: check using lctl get_param nodemap.proj3.ranges?
-    # TODO: changed_when
-
-  - name: configure client nodemaps group squash
-    # lctl takes gid but we defined group name in group_vars. If name is False, use (lustre default gid) 99 else lookup gid from projects var.
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_gid --value {{ hostvars[item].lustre.squash_gid }}"
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: if this is set from <name> to False at the moment it won't reset to default 99..
-    # TODO: need to make permanent too - see docs
-    # can run these multiple times with no (direct) way to tell if it's changed
-    # TODO: changed_when
-
-  - name: configure client nodemaps user squash
-    # comments as for group squash above
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property squash_uid --value {{ hostvars[item].lustre.squash_uid }}"
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: changed_when
-
-  - name: configure client nodemaps trusted property
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property trusted --value {{ hostvars[item].lustre.trusted|int }}"
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: changed_when
-
-  - name: configure client nodemap admin property
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property admin --value {{ hostvars[item].lustre.admin|int }}"
-    loop: "{{ groups['lustre_client'] }}"
-    # TODO: changed_when
-
-  - name: configure client nodemap deny_unknown property
-    command: "lctl nodemap_modify --name {{ item | replace('-', '_') }} --property deny_unknown --value {{ hostvars[item].lustre.deny_unknown|int }}"
-    loop: "{{ groups['lustre_client'] }}"
-
-  - name: configure client nodemap mappings
-    include_tasks: idmap.yml
-    loop: "{{ groups['lustre_client'] }}"
-    loop_control:
-      loop_var: loop_host
-
-
+    
 - name: Deploy ssk client keys
   hosts: lustre_client
   gather_facts: false
