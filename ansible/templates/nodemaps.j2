@@ -1,0 +1,33 @@
+nodemap:
+  active: 1
+  default:
+    admin_nodemap: 0
+    audit_mode: 1
+    fileset: ''
+    id: 0
+    squash_gid: 99
+    squash_uid: 99
+    trusted_nodemap: 0
+{% for client in groups['lustre_client'] %}
+  {{ client | replace('-', '_') }}:
+    admin_nodemap: {{ hostvars[client].lustre.admin|int }}
+    audit_mode: 1
+    deny_unknown: {{ hostvars[client].lustre.deny_unknown|int }}
+    fileset: '{{ hostvars[client].lustre.fileset}}'
+{% if hostvars[client].lustre.idmap | length == 0 %}
+    idmap: []
+{% else %}
+    idmap:
+{% for idmap in hostvars[client].lustre.idmap %}
+    - client_id: {{ idmap[1] }}
+      fs_id: {{ idmap[2] }}
+      idtype: {{ idmap[0] }}
+{% endfor %}
+{% endif %}
+    ranges:
+    - end_nid: {{ hostvars[client]['ansible_host'] }}@{{ hostvars[client]['lnet_eth0_net_type'] }}
+      start_nid: {{ hostvars[client]['ansible_host'] }}@{{ hostvars[client]['lnet_eth0_net_type'] }}
+    squash_gid: {{ hostvars[client].lustre.squash_gid }}
+    squash_uid: {{ hostvars[client].lustre.squash_uid }}
+    trusted_nodemap: {{ hostvars[client].lustre.trusted|int }}
+{% endfor %}
