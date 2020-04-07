@@ -137,6 +137,8 @@ These are defined by `ansible/group_vars`:
 
 These groups are then used to generate a configuration file for each node using the `ansible/lnet.conf.j2` template as part of the appropriate server/router/client role, and then imported to lustre.
 
+Note that ansible will enforce that ONLY the automatically-defined routes are present.
+
 Additional general information about how lnet routes work is provided under [Lustre networks](lustre-networks) below.
 
 ## Nodemaps
@@ -154,6 +156,8 @@ The key/value pairs in the `lustre` mapping function essentially as described in
     - ... uid/gid on server
 
 This configuration follows Lustre's concepts/terminology very closely, although the use of Ansible makes it somewhat more user-friendly as for example uids can be looked up from usernames.
+
+Note that ansible will enforce that no nodemaps exist other than the ones it defines and the `default` nodemap, and that all parameters on those nodemaps match the ansible configuration, including client ranges and id maps.
 
 ## Users
 The demo users `andy` etc are defined for each client individually in `group_vars/client_net*.yml:users`. These users are created on the appropriate clients by `users.yml` which also creates the client1 users on the server to fake shared LDAP. While the lustre documentation specifically [states](http://doc.lustre.org/lustre_manual.xhtml#section_rh2_d4w_gk) that uid and gids are required to be the same "on all clients" this is not necessarily the case when clients are mounting isolated directories as here.
@@ -187,7 +191,6 @@ Multi-hop paths require routes to be defined along the way: e.g. if node "A" in 
 
 It is not necessarily obvious how to configure the nodemap functionality, project directory permissions and users/groups to give the desired access control. This section therefore provides narrative explanation of how the example configuration here actually works to provide the outcomes defined in [Projects and Users](#projects-and-users). If experimenting with configuration note that:
 - While the manual says nodemap changes propagate in ~10 seconds, it was found necessary to unmount and remount the filesystem to get changes to apply, although this was nearly instantaneous and proved robust.
-- Removal of idmaps etc will require manual intervention using lustre commands - see [Limitations](#limitations).
 - Reducing the caching of user/group upcalls from the default 20 minutes to 1 second is recommended using:
 
         [centos@lustre-storage ~]$ sudo lctl set_param mdt.*.identity_expire=1
@@ -232,16 +235,7 @@ Considering access to `/csd3/proj12/`:
 - As `root` is not idmapped it is squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it has group access without needing to have `proj3` as a secondary group..
 
 # Limitations
-As noted above changing Lustre configuration once the cluster is running may require manual intervention - consult the lustre documentation.
-
 When run, the Ansible will enforce that:
-- Only the automatically-defined routes are present
-- No nodemaps other than the ones it defines (and the `default` nodemap) exist
-- All parameters on those nodemaps match the Ansible configuration
-
-However it does not currently enforce that:
-- No additional clients ("ranges") are present in the nodemaps it defines
-- No additional id mappings exist
 
 In any of these cases it may be necessary to remove configuration manually using lustre commands. Note that the `verify.yml` playbook can identify these issues if a known-good configuration is defined.
 
@@ -263,7 +257,7 @@ In any of these cases it may be necessary to remove configuration manually using
 
 # Potential next steps
 Suggested routes for development are:
-- Extend the export functionality provided by `tools/lustre-tools` to provide an `import` function which would "diff" the required state against the live state, make all necessary changes, and output the diff to allow ansible's `changed_when` to be accurate. This would fix the [limitations](#Limitations) in controlling lustre from ansible and the incorrect reporting of nodemap changes.
+- Extend `tools/lustre-tools/lnet.py` to provide an `import` function similar to `tools/lustre-tools/nodemap.py`: currently lnet config is set by exporting the live config, deleting all of it (which raises some errors which we ignore) then importing the desired config. This means ansible a) reports errors and b) always shows config as changed.
 - In an environment where the reverse DNS lookup works correctly (i.e. `nslookup <ip_addr>` returns a name), work around the ssk sudo bug (e.g. by logging in as root when mounting) and test ssk functionality/performance. (Note current `authorized_keys` entries for `root` prevent running commands.)
 - Add/use an `eth0_address` variable for hosts in addition to `ansible_host` to protect against unusual cases of the latter.
 - Use [ganesha](https://github.com/nfs-ganesha/nfs-ganesha/wiki) running on the tenant router to re-export the lustre filesystem over NFS for the tenant's clients. This would remove the need for the clients to be running lustre.
