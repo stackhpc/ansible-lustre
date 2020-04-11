@@ -55,7 +55,10 @@ NODEMAP_SET_FILESET = "lctl nodemap_set_fileset --name {nodemap} --fileset {new}
 NODEMAP_MODIFY = "lctl nodemap_modify --name {nodemap} --property {property} --value {new}"
 NODEMAP_CHANGE_IDMAP = "lctl nodemap_{mode}_idmap --name {nodemap} --idtype {idtype} --idmap {client_id}:{fs_id}"
 NODEMAP_CHANGE_RANGE = "lctl nodemap_{mode}_range --name {nodemap} --range {nid}"
-NODEMAP_MODIFY_PARAMS = 'admin_nodemap squash_gid squash_uid trusted_nodemap deny_unknown'.split()
+NODEMAP_MODIFY_PARAMS = 'squash_gid squash_uid deny_unknown'.split()
+# NB for the next two commands the exported yaml (from `lctl get_param nodemap.<nodemap_name>.*`) has e.g. "admin_nodemap" whereas `lctl nodemap_modify --property` just has "admin", unhelpfully!
+NODEMAP_SET_ADMIN = "lctl nodemap_modify --name {nodemap} --property admin --value {new}"
+NODEMAP_SET_TRUSTED = "lctl nodemap_modify --name {nodemap} --property trusted --value {new}"
 NODEMAP_IGNORE_PARAMS = 'audit_mode exports id map_mode sepol'.split()
 
 def cmd(cmdline):
@@ -70,6 +73,8 @@ def cmd(cmdline):
 def call(cmdline):
     proc = subprocess.Popen(cmdline, shell=True) # need shell else lctl not found
     proc.wait()
+    if proc.returncode != 0:
+        exit(proc.returncode)
 
 def lctl_get_param(item, output):
     """ Get a lustre parameter.
@@ -228,14 +233,17 @@ def diff(left, right):
     dleft = dict((k, v) for (k, v) in flatten(left))
     dright = dict((k, v) for (k, v) in flatten(right))
 
+    # remove 'id' key from range: # TODO: find some way to generalise this as key=func, with key maybe wildcarded, e.g. (*, "ranges")
+    for d in (dleft, dright):
+        for k in d:
+            if k[-1] == 'ranges':
+                strip_range_id(d[k])
+
     leftkeys = set(dleft.keys())
     rightkeys = set(dright.keys())
     
     output = []
     for k in sorted(leftkeys | rightkeys):
-        if k[-1] == 'ranges':
-            strip_range_id(dleft[k])
-            strip_range_id(dright[k])
         if k[-1] in NODEMAP_IGNORE_PARAMS:
             pass # TODO: add verbose output and control?
         elif k in leftkeys and k not in rightkeys:
@@ -300,10 +308,14 @@ def make_changes(changes, func=call):
         else:
             if nodemap not in deleted_nodemaps: # can't changed properties if we've deleted it!
                 param = keypath[2]
-                if param == 'fileset' and action == 'ADD': # can ignore delete
+                if param == 'fileset' and action == 'ADD': # can ignore delete on these, just overwrite
                     func(NODEMAP_SET_FILESET.format(nodemap=nodemap, new=value))
-                elif param in NODEMAP_MODIFY_PARAMS and action == 'ADD': # can ignore delete
+                elif param in NODEMAP_MODIFY_PARAMS and action == 'ADD':
                     func(NODEMAP_MODIFY.format(nodemap=nodemap, property=param, new=value))
+                elif param == 'admin_nodemap' and action == 'ADD':
+                    func(NODEMAP_SET_ADMIN.format(nodemap=nodemap, new=value))
+                elif param == 'trusted_nodemap' and action == 'ADD':
+                    func(NODEMAP_SET_TRUSTED.format(nodemap=nodemap, new=value))
                 elif param == 'idmap': # don't ignore delete as need to get rid of old ones
                     for idmap in value:
                         func(NODEMAP_CHANGE_IDMAP.format(mode=action.lower(), nodemap=nodemap, **idmap))
