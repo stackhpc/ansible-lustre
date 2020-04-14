@@ -4,10 +4,11 @@
 - import_playbook: routers.yml  # ditto
 - import_playbook: projects.yml # configures MGS parameters for projects. Requires server.yml so lustre fs exists.
 - import_playbook: admin.yml    # creates admin client and uses it to create project directories in lustre fs. Requires server.yml (so lustre fs exists) and projects.yml (so admin nodemap is defined)
-- import_playbook: clients.yml  # installs client packages, mounts fs
+- import_playbook: clients.yml  # installs client packages
 - import_playbook: lnet-test.yml # test connectivity at lnet level
 - import_playbook: verify.yml   # export lustre config and diffs against known-good config (if provided in lustre-configs-good/)
 - import_playbook: users.yml    # sets up user/groups across server and clients
+- import_playbook: mount.yml    # mount lustre fs on clients - *** NB: users.yml MUST have been run first due to root squashing config ***
 
 # The structure of the above is partly driven by the idea that client configuration might be an entirely separate repo at some point.
 # If that wasn't a requirement, it would be considerably faster to do kernel updates and package installs on all hosts at once, then group-specific configuration roles.

@@ -1,14 +1,8 @@
 ---
-# also needs mount_state
 # document what's currently provided from group_vars here
 # for project user/group names/guids:
   # projects[item].base
   # projects.keys()
-# for mount:
-  # lustre.mount_point
-  # lustre.mgs_addr
-  # lustre.mgs_lnet
-  # lustre.fs_name
 # for lnet:
   # TODO:
 - name: enable lustre client repo
