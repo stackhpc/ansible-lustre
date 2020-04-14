@@ -4,6 +4,12 @@
   become: true
   tasks:
 
+  - name: check nodemap names meet (undocumented) nodemap name length restriction
+    fail:
+      msg: "hostname {{ item }} must be 16 characters or less to be usable as a lustre nodemap name"
+    loop: "{{ groups['lustre_client'] }}"
+    when: "item | length  > 16"
+    
   - name: create config dir
     file:
       path: /etc/lustre
@@ -24,12 +30,12 @@
   - name: setup ssk shared keys on server
     import_tasks: ssk.yml
     when: "lustre.ssk_flavor != 'null'"
-
+  
   - name: create nodemap config
     template:
       dest: /etc/lustre/nodemaps.yml
       src: templates/nodemaps.j2
-
+    
   - name: apply nodemap config
     script: 'tools/lustre-tools/nodemap.py import /etc/lustre/nodemaps.yml'
     register: nodemap_import
