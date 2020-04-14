@@ -44,3 +44,9 @@
         mode: "{{ projects[item.key].mode }}"
         state: directory
       loop: "{{ projects | dict2items }}"
+
+    - name: create files in project directories to show mountpoints
+      file:
+        path: "/mnt/lustre/{{ item.value.root }}/{{ item.key }}/this-is-{{ item.key }}.txt"
+        state: touch
+      loop: "{{ projects | dict2items }}"
