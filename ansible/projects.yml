@@ -34,7 +34,11 @@
     script: 'tools/lustre-tools/nodemap.py import /etc/lustre/nodemaps.yml'
     register: nodemap_import
     changed_when: "nodemap_import.stdout | trim != ''"
-
+  
+  - name: show nodemap changes
+    debug:
+      msg: "{{ nodemap_import.stdout }}"
+    changed_when: false
     
 - name: Deploy ssk client keys
   hosts: lustre_client
