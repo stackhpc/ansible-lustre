@@ -1,0 +1,17 @@
+- name: Mount lustre on clients
+  hosts: lustre_client:!admin_client
+  gather_facts: false
+  become: true
+  tasks:
+    - mount: # NB: actual subdir may be determined by fileset on client's nodemap
+        fstype: lustre
+        src: "{{ lustre.mgs_addr }}@{{ lustre.mgs_lnet }}:/{{ lustre.fs_name }}"
+        path: "{{ lustre.mount_point }}"
+        state: mounted
+        opts: "skpath=/etc/lustre,defaults,_netdev,noauto,x-systemd.automount,x-systemd.requires=lnet.service"
+        # NB: /etc/lustre must exist - currently done in client role
+        # opts are systemd defaults from http://wiki.lustre.org/Mounting_a_Lustre_File_System_on_Client_Nodes
+      register: mount
+      #until: "mount.failed == false"
+      #retries: 20
+      #delay: 1
