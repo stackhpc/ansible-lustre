@@ -74,7 +74,7 @@ def call(cmdline):
     proc = subprocess.Popen(cmdline, shell=True) # need shell else lctl not found
     proc.wait()
     if proc.returncode != 0:
-        exit(proc.returncode)
+        exit('ERROR: %r returned %i' % (cmdline, proc.returncode))
 
 def lctl_get_param(item, output):
     """ Get a lustre parameter.

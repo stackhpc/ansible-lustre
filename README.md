@@ -234,6 +234,8 @@ Considering access to `/csd3/proj12/`:
 - Behaviour for demo users `catrin` and `charlie` and the default OS user `centos` is exacly analogous to client 2.
 - As `root` is not idmapped it is squashed to user `proj3-member` and group `proj3` as for all other users. However, unlike normal users it has group access without needing to have `proj3` as a secondary group..
 
+**NB:** For mounting the filesystme to succeed the mounting user must be able to access the mounted directory, so any squashing/mapping must be appropriate AND the appropriate users are present on client and server. E.f if mounting as `root` but this is mapped to another user, the users must be set up first. This is why mounting is done separately in `mount.yml` after `users.yml`, rather than as part of the `clients.yml` playbook.
+
 # Limitations
 When run, the Ansible will enforce that:
 
