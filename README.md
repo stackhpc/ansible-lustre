@@ -12,7 +12,8 @@ network 1            network 2              network 3
    |                    |                    |
    +-[lustre-storage]   |                    |
    +-[lustre-admin]     |                    |  
-   +-[lustre-client1]   +-[lustre-client2]   +-[lustre-client2]
+   +-[lustre-client1]   +-[lustre-client2]   +-[lustre-client3]
+   |                    |                    +-[lustre-comp3-0]
    |                    |                    |
    +---[lustre-lnet2]---+---[lustre-lnet3]---+
 ```
@@ -29,6 +30,7 @@ The nodes on the networks are then:
                     IP and serves as a proxy for ssh access to nodes.
 - `lustre-admin`: A Lustre client used to admininster the fileystem - it has a privileged view of the real owners/permissions.
 - `lustre-client[1-3]`: Lustre clients with different access levels to the filesystem (discussed below)
+- `lustre-comp3-0`: A lustre client which can be configured as slurm compute node (discussed below)
 - `lustre-lnet[2-3]`: Lnet routers to provide connectivity between clients and server across the different networks.
 
 Various Lustre features are used to control how clients can access the filesystem:
@@ -105,13 +107,36 @@ Once this has completed, there will be Lustre configuration in `ansible/lustre-c
 for correctness and then copy (and potentially commit them) to `ansible/lustre-configs-good/`. Ansible will then compare live config against this each time it is run
 and warn if there are differerences.
 
-Optionally, monitoring may be then set up by running:
+Optionally you may also set up the following:
+
+### Monitoring
+
+Run:
 
     ansible-playbook -i inventory monitoring.yml -e "grafana_password=<PASSWORD>"
 
 where `<PASSWORD>` should be replaced with a password of your choice.
 
+This installs Prometheus (to collect monitoring data), Graphana (to query and display it) and exporters for both general node statistics (memory, cpu etc) as well as HP's [Lustre exporter](https://github.com/HewlettPackard/lustre_exporter/).
+
 The `lustre-storage` node (see `ssh_proxy` in `inventory` for IP) then hosts Prometheus at port 9090 and Graphana (username="admin", password as chosen) at port 3000.
+
+### Tenant Slurm cluster
+
+Run:
+
+    ansible-playbook -i inventory slurm.yml
+
+This will:
+- Create an OpenHPC slurm cluster in net3, using `lustre-client3` as the combined control/login node and `lustre-comp3-0` as a single compute node.
+- Configure Lustre to track slurm jobs.
+- Run a demo slurm job which creates a 10GB file on the lustre filesystem and then copies it.
+
+This demo job should show up in the "jobstats" section of the Lustre Graphana dashboard.
+
+You can re-run the demo job, skipping the other steps for speed using:
+
+    ansible-playbook -i inventory slurm.yml --tags demo
 
 ## Logging into nodes
 

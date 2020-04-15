@@ -1,0 +1,106 @@
+- name: setup slurm cluster on net3
+  hosts:
+    - lustre-client3 # acts as slurm control and login node
+    - lustre-comp3-0 # single compute node
+  become: yes
+  vars:
+    openhpc_repo_url: "https://github.com/openhpc/ohpc/releases/download/v1.3.GA/ohpc-release-1.3-1.el7.x86_64.rpm"
+    cluster_packages:
+      - gnu7-compilers-ohpc
+      - openmpi3-gnu7-ohpc
+  tasks:
+    - name: Generate /etc/hosts file content
+      set_fact:
+        etc_hosts_content: |
+          {% for host in ansible_play_hosts %}{{ hostvars[host]['ansible_default_ipv4']['address'] }} {{ host }}.novalocal {{ host }}
+          {% endfor %}
+      run_once: true
+    - name: Create entries in /etc/hosts for all nodes
+      blockinfile:
+        path: /etc/hosts
+        create: no
+        state: present
+        block: "{{ hostvars[ansible_play_hosts[0]].etc_hosts_content }}"    
+    - name: download required branch of stackhpc openhpc role
+      git:
+        dest: "{{ playbook_dir }}/roles/ansible-role-openhpc"
+        repo: https://github.com/stackhpc/ansible-role-openhpc.git
+        version: "issue20" # allows a single-compute-node cluster
+        accept_hostkey: yes
+      delegate_to: localhost
+      run_once: true
+      become: false
+    # TODO: modify template to remove accounting line?
+    - name: create group required by openhpc role
+      add_host:
+        name: "lustre-comp3-0"
+        groups: "lustre_comp3"
+    - name: add openhpc repo
+      yum:
+        name: "{{ openhpc_repo_url }}"
+        state: present
+    - name: install, configure and start openhpc slurm
+      include_role:
+        name: ansible-role-openhpc
+      vars:
+        openhpc_enable:
+          control: "{{ inventory_hostname == 'lustre-client3' }}"
+          batch: "{{ inventory_hostname == 'lustre-comp3-0' }}"
+          runtime: true
+        openhpc_slurm_service_enabled: true
+        openhpc_slurm_control_host: "lustre-client3"
+        openhpc_slurm_partitions:
+          - name: "comp3"
+            num_nodes: 1
+        openhpc_cluster_name: lustre # lustre-comp3-0: must be a group named "{{openhpc_cluster_name}}_{{partition.name}}" - is generated above here
+        openhpc_packages: "{{ cluster_packages }}"
+
+- name: enable jobstats
+  hosts: lustre_server[0] # TODO: MGS group?
+  become: yes
+  gather_facts: false
+  tags:
+    - jobstats
+  tasks:
+    - name: check current jobstats config
+      command: "lctl get_param jobid_var"
+      register: jobid_var
+      changed_when: false
+    - name: enable jobstats for slurm
+      command: "lctl conf_param {{ lustre.fs_name }}.sys.jobid_var=SLURM_JOB_ID"
+      when: "jobid_var.stdout != 'jobid_var=SLURM_JOB_ID'"
+      # NB can take a few seconds for this change to appear (both on server and on clients!)
+
+- name: run slurm demo using lustre fileysystem
+  hosts: lustre-client3
+  become: yes
+  become_user: datamanager # NB this is important!
+  tags:
+    - demo
+  tasks:
+  - copy:
+      dest: "/mnt/lustre/lustredemo.sh"
+      content: |
+        #!/usr/bin/bash
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        # NB don't use .out as filename as that is for job's own stdout!
+        
+        echo writing ./data-$SLURM_JOB_ID.a ...
+        time -p dd if=/dev/zero of=./data-$SLURM_JOB_ID.a bs=4k iflag=fullblock,count_bytes count=10G
+        
+        echo copying to ./data-$SLURM_JOB_ID.b ...
+        time -p cp ./data-$SLURM_JOB_ID.a ./data-$SLURM_JOB_ID.b
+        
+        echo deleting both files ...
+        time -p rm ./data-$SLURM_JOB_ID.a ./data-$SLURM_JOB_ID.b
+        echo done.
+        
+  - command:
+      cmd: "sbatch lustredemo.sh"
+      chdir: "/mnt/lustre/"
+    register: sjob
+    changed_when: true
+  - debug:
+      msg: "{{ sjob.stdout }}"
+      

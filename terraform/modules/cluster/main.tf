@@ -132,6 +132,18 @@ resource "openstack_compute_instance_v2" "client3" {
   depends_on = [openstack_networking_subnet_v2.net3]
 }
 
+resource "openstack_compute_instance_v2" "compute3-0" {
+  name = "${var.instance_prefix}-comp3-0" # needs to be <= 16 chars for nodemap name
+  image_name = var.image
+  flavor_name = var.flavor
+  key_pair = openstack_compute_keypair_v2.terraform.name
+  security_groups = [openstack_networking_secgroup_v2.secgroup_monitoring.id]
+  network {
+    uuid = openstack_networking_network_v2.net3.id
+  }
+  depends_on = [openstack_networking_subnet_v2.net3]
+}
+
 resource "openstack_compute_instance_v2" "lnet3" {
   name = "${var.instance_prefix}-lnet3"
   image_name = var.image
@@ -269,6 +281,7 @@ ${openstack_compute_instance_v2.lnet3.name} ansible_host=${openstack_compute_ins
 EOT
       net3 = <<EOT
 ${openstack_compute_instance_v2.client3.name} ansible_host=${openstack_compute_instance_v2.client3.network[0].fixed_ip_v4}
+${openstack_compute_instance_v2.compute3-0.name} ansible_host=${openstack_compute_instance_v2.compute3-0.network[0].fixed_ip_v4}
 EOT
       admin = <<EOT
 ${openstack_compute_instance_v2.admin.name} ansible_host=${openstack_compute_instance_v2.admin.network[0].fixed_ip_v4}
