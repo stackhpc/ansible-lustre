@@ -248,7 +248,6 @@ In any of these cases it may be necessary to remove configuration manually using
   - Authenticity of host cannot be established (may require accepting fingerprint)
   - Timeout waiting for priviledge escalation prompt
   - Failures during installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
-  - Failure to mount lustre filesystem on clients
   - Failures of `lnet-test.yml` (possibly server not ready?) - obviously repeated failures are bad
 - Shared-key security (ssk) does not currently work due to:
   - A bug in how Lustre handles `sudo` for ssk.
