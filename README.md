@@ -274,6 +274,7 @@ In any of these cases it may be necessary to remove configuration manually using
   - Timeout waiting for priviledge escalation prompt
   - Failures during installation of Lustre client kmods (possibly this is hitting repo rate limiting?)
   - Failures of `lnet-test.yml` (possibly server not ready?) - obviously repeated failures are bad
+  - When running `monitoring.ym`: "failure 1 during daemon-reload: Failed to execute operation: Interactive authentication required."
 - Shared-key security (ssk) does not currently work due to:
   - A bug in how Lustre handles `sudo` for ssk.
   - Reverse DNS lookups (required for ssk) not working in the VSS environment as configured here - fixing this is tricky due to the (OS) network setup.  
