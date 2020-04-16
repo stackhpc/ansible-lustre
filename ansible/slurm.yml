@@ -55,21 +55,23 @@
         openhpc_cluster_name: lustre # lustre-comp3-0: must be a group named "{{openhpc_cluster_name}}_{{partition.name}}" - is generated above here
         openhpc_packages: "{{ cluster_packages }}"
 
-- name: enable jobstats
-  hosts: lustre_server[0] # TODO: MGS group?
+- name: configure jobstats
+  hosts: lustre_client,lustre-storage # TODO: MGS group? # NB: don't run on routers
   become: yes
   gather_facts: false
   tags:
     - jobstats
+  vars:
   tasks:
-    - name: check current jobstats config
-      command: "lctl get_param jobid_var"
-      register: jobid_var
-      changed_when: false
-    - name: enable jobstats for slurm
+    - name: turn on jobstats on MGS
       command: "lctl conf_param {{ lustre.fs_name }}.sys.jobid_var=SLURM_JOB_ID"
-      when: "jobid_var.stdout != 'jobid_var=SLURM_JOB_ID'"
-      # NB can take a few seconds for this change to appear (both on server and on clients!)
+      delegate_to: lustre-storage # TODO: MGS group?
+      run_once: true
+    - name: turn off jobstats on non-slurm nodes
+      command: "lctl set_param jobid_var=disable"
+      when: "'client_net3' not in group_names"
+    # TODO: changed-when won't be right but given propagation delay no easy way to fix this!
+    # also new clients mounting the lustre fs will automatically get the MGS config :-(
 
 - name: run slurm demo using lustre fileysystem
   hosts: lustre-client3

@@ -132,9 +132,9 @@ This will:
 - Configure Lustre to track slurm jobs.
 - Run a demo slurm job which creates a 10GB file on the lustre filesystem and then copies it.
 
-This demo job should show up in the "jobstats" section of the Lustre Graphana dashboard.
+This demo job should show up in the "jobstats" section of the Lustre Graphana dashboard. Note that jobstats are disabled on non-slurm clients, but the jobstats from slurm clients also appear to show processes which do not have a slurm job id.
 
-You can re-run the demo job, skipping the other steps for speed using:
+You can re-run the demo job, skipping the other steps for speed, using:
 
     ansible-playbook -i inventory slurm.yml --tags demo
 
