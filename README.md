@@ -4,7 +4,7 @@ Terraform/Ansible demonstration of multi-tenant Lustre.
 
 # Overview
 
-This repo creates and configures networks and nodes to represent the use of Lustre in a multi-tenent configuration:
+This repo creates and configures networks and nodes to represent the use of Lustre in a multi-tenant configuration:
 
 ```
 network 1            network 2              network 3
